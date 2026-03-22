@@ -32,7 +32,7 @@ class SystemUsersTableSeeder extends Seeder
                 'custom_id' => 'ADM002',
                 'fname' => 'System',
                 'lname' => 'Administrator',
-                'email' => 'yeseducation@gmail.com',
+                'email' => 'shakyaducation@gmail.com',
                 'mobile' => '0719876543',
                 'nic' => '987654321V',
                 'bday' => '1990-05-20',
@@ -100,7 +100,7 @@ class SystemUsersTableSeeder extends Seeder
             $userId = DB::table('users')->insertGetId([
                 'name' => 'System Administrator',
                 'email' => $email,
-                'password' => Hash::make('yes@Admin'), // default password
+                'password' => Hash::make('Admin@shakya'), // default password
                 'user_type' => $adminTypeId,
                 'is_active' => true,
                 'email_verified_at' => now(),
