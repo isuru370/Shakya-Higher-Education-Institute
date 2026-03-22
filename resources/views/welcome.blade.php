@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YES Higher Education · welcome</title>
+    <title>Shakya Higher Education · welcome</title>
     <!-- Fonts -->
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,300&display=swap"
@@ -330,7 +330,7 @@
 
         <h1>
             <span>Welcome to</span>
-            <span class="accent">YES Higher Education</span>
+            <span class="accent">Shakya Higher Education</span>
         </h1>
 
         <p class="tagline">
