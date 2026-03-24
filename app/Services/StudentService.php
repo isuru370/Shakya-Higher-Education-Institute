@@ -116,7 +116,7 @@ class StudentService
     {
         try {
             $students = Student::where('is_active', 1)
-                ->where('permanent_qr_active',false)
+                ->where('permanent_qr_active', false)
                 ->where('student_disable', 0)
                 ->orderBy('id', 'desc')
                 ->get()
@@ -1056,35 +1056,40 @@ class StudentService
         // Generate a random password
         $password = Str::random(8);
 
+        // ✅ Make username unique
+        $baseUsername = $student->mobile;
+        $username = $baseUsername;
+        $count = 1;
+
+        while (StudentPortalLogin::where('username', $username)->exists()) {
+            $username = $baseUsername . '_' . $count;
+            $count++;
+        }
+
         if (auth()->check()) {
-            // Admin is creating the student
+            // Admin creating
             StudentPortalLogin::create([
                 'student_id' => $student->id,
-                'username'   => $student->mobile,  // or email if you prefer
+                'username'   => $username,
                 'password'   => Hash::make($password),
                 'is_active'  => true,
                 'is_verify'  => true,
                 'otp'        => null,
                 'otp_expires_at' => null,
             ]);
-
-            //Log::info("Admin created portal login for student ID {$student->id}");
         } else {
-            // Self-registration → OTP required
-            $otp = rand(100000, 999999); // 6-digit OTP
+            // Self registration
+            $otp = rand(100000, 999999);
 
             StudentPortalLogin::create([
                 'student_id'      => $student->id,
-                'username'        => $student->mobile,
+                'username'        => $username,
                 'password'        => Hash::make($password),
-                'is_active'       => false, // account inactive until OTP verify
+                'is_active'       => false,
                 'is_verify'       => false,
                 'otp'             => $otp,
                 'otp_expires_at'  => now()->addMinutes(5),
             ]);
-
-            // TODO: send OTP via SMS gateway
-            // Log::info("OTP {$otp} generated for student ID {$student->id} (self-registration)");
         }
     }
 
