@@ -14,7 +14,7 @@ class ImageUploadService
     {
         try {
             $request->validate([
-                'image' => 'required|image|mimes:jpg,jpeg,png|max:5120',
+                'image' => 'required|image|mimes:jpg,jpeg,png|max:2048',
             ]);
 
             $image = $request->file('image');
