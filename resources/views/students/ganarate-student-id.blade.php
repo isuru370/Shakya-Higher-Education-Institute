@@ -238,7 +238,7 @@
                                                 <div class="col-8 d-flex flex-column">
                                                     <div class="id-card-profile-box mt-1 ms-1">
                                                         @php
-                                                            $defaultImage = asset('uploads/logo/white_logo.png');
+                                                            $defaultImage = asset('uploads/logo/black_logo.png');
                                                             $studentImage = $student['img_url'] ?? $defaultImage;
                                                         @endphp
                                                         <img src="{{ $studentImage }}" alt="Student Photo"
@@ -266,7 +266,7 @@
                                                     @endphp
                                                     <img src="{{ $qrUrl }}" class="id-card-qr-img mt-1" alt="QR Code"
                                                         id="qr-img-{{ $student['custom_id'] }}">
-                                                    <img src="{{ asset('uploads/logo/white_logo.png') }}"
+                                                    <img src="{{ asset('uploads/logo/black_logo.png') }}"
                                                         class="id-card-logo mt-auto mb-1" alt="Logo"
                                                         id="logo-img-{{ $student['custom_id'] }}">
                                                 </div>
@@ -536,7 +536,7 @@
         }
 
         function generateCardHTML(student) {
-            const defaultImage = '{{ asset('uploads/logo/white_logo.png') }}';
+            const defaultImage = '{{ asset('uploads/logo/black_logo.png') }}';
             let studentImage = student.img_url || defaultImage;
 
             // Ensure image is a full URL
@@ -573,7 +573,7 @@
                                      alt="QR Code"
                                      crossorigin="anonymous"
                                      style="margin-top:1mm;">
-                                <img src="{{ asset('uploads/logo/white_logo.png') }}"
+                                <img src="{{ asset('uploads/logo/black_logo.png') }}"
                                      class="id-card-logo"
                                      alt="Logo"
                                      crossorigin="anonymous"
