@@ -213,78 +213,6 @@
     </div>
 @endsection
 
-@push('styles')
-<style>
-    .category-card {
-        cursor: pointer;
-        transition: all 0.3s ease;
-        border: 2px solid transparent;
-    }
-
-    .category-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    }
-
-    .category-card.selected {
-        border-color: #198754;
-        background-color: #f8fff9;
-    }
-
-    .student-row {
-        transition: all 0.2s ease;
-    }
-
-    .student-row.selected {
-        background-color: #e8f5e8;
-    }
-
-    .table th {
-        background: linear-gradient(135deg, #198754, #157347);
-        color: white;
-        font-weight: 600;
-    }
-
-    .badge-fee {
-        font-size: 0.9rem;
-        padding: 0.5rem 0.8rem;
-    }
-
-    .page-link {
-        color: #198754;
-        border-color: #dee2e6;
-    }
-
-    .page-item.active .page-link {
-        background-color: #198754;
-        border-color: #198754;
-    }
-
-    .page-link:hover {
-        color: #146c43;
-        background-color: #e9ecef;
-        border-color: #dee2e6;
-    }
-
-    /* New styles for enrollment status */
-    .enrollment-active {
-        background-color: #d1f7e1 !important;
-    }
-
-    .enrollment-inactive {
-        background-color: #fff3cd !important;
-    }
-
-    .enrollment-not-enrolled {
-        /* Default white background */
-    }
-
-    .enrollment-checkbox {
-        margin-right: 5px;
-    }
-</style>
-@endpush
-
 @push('scripts')
 <script>
     // Helper functions
@@ -301,7 +229,7 @@
     let selectedCategoryName = '';
     let selectedCategoryFee = 0;
     let selectedStudents = new Set();
-    let selectedEnrolledStudents = new Set(); // NEW: For enrolled student selection
+    let selectedEnrolledStudents = new Set(); // For enrolled student selection
     let allStudents = [];
     let enrolledStudents = {}; // Store enrolled students data
     
@@ -417,7 +345,7 @@
         container.innerHTML = `<div class="row">${container.innerHTML}</div>`;
     }
 
-    // Select Category - MODIFIED
+    // Select Category
     function selectCategory(categoryId, categoryName, fee) {
         selectedCategoryId = categoryId;
         selectedCategoryName = categoryName;
@@ -444,7 +372,7 @@
     // Load Enrolled Students
     async function loadEnrolledStudents(categoryId) {
         try {
-            const response = await fetch(`/api/student-classes/${classId}/category/${categoryId}`);
+            const response = await fetch(api(`student-classes/${classId}/category/${categoryId}`));
             
             if (!response.ok) {
                 throw new Error('Failed to load enrolled students');
@@ -485,7 +413,7 @@
         }
     }
 
-    // NEW: Toggle Enrolled Actions Bar
+    // Toggle Enrolled Actions Bar
     function toggleEnrolledActionsBar() {
         const enrolledActions = document.getElementById('enrolledActions');
         const hasEnrolledStudents = Object.keys(enrolledStudents).length > 0;
@@ -542,7 +470,7 @@
         }
     }
 
-    // Render Students Table with Pagination - MODIFIED
+    // Render Students Table with Pagination
     function renderStudentsTable() {
         const tbody = document.getElementById('studentsTableBody');
         const emptyState = document.getElementById('studentsEmpty');
@@ -569,7 +497,7 @@
         paginatedStudents.forEach((student, index) => {
             const actualIndex = startIndex + index;
             const isSelected = selectedStudents.has(student.id);
-            const isEnrolledSelected = selectedEnrolledStudents.has(student.id); // NEW
+            const isEnrolledSelected = selectedEnrolledStudents.has(student.id);
             const enrollment = enrolledStudents[student.id];
             
             let rowClass = 'enrollment-not-enrolled';
@@ -645,12 +573,12 @@
         updatePaginationControls(totalPages);
 
         updateSelectedCount();
-        updateEnrolledSelectedCount(); // NEW
+        updateEnrolledSelectedCount();
         updateSelectAllCheckbox();
-        updateEnrolledActionButtons(); // NEW
+        updateEnrolledActionButtons();
     }
 
-    // NEW: Toggle Enrolled Student Selection
+    // Toggle Enrolled Student Selection
     function toggleEnrolledStudentSelection(studentId, isSelected) {
         if (isSelected) {
             selectedEnrolledStudents.add(studentId);
@@ -662,19 +590,19 @@
         updateEnrolledActionButtons();
     }
 
-    // NEW: Update Enrolled Selected Count
+    // Update Enrolled Selected Count
     function updateEnrolledSelectedCount() {
         const count = selectedEnrolledStudents.size;
         document.getElementById('selectedEnrolledCount').textContent = `${count} selected`;
     }
 
-    // NEW: Update Enrolled Action Buttons
+    // Update Enrolled Action Buttons
     function updateEnrolledActionButtons() {
         const deactivateBtn = document.getElementById('deactivateEnrolledBtn');
         deactivateBtn.disabled = selectedEnrolledStudents.size === 0;
     }
 
-    // NEW: Clear Enrolled Selections
+    // Clear Enrolled Selections
     function clearEnrolledSelections() {
         selectedEnrolledStudents.clear();
         document.querySelectorAll('.enrollment-checkbox').forEach(checkbox => {
@@ -823,7 +751,7 @@
 
     function clearAllSelections() {
         selectedStudents.clear();
-        selectedEnrolledStudents.clear(); // NEW: Clear enrolled selections too
+        selectedEnrolledStudents.clear();
         document.querySelectorAll('.student-checkbox').forEach(checkbox => {
             if (!checkbox.disabled) {
                 checkbox.checked = false;
@@ -838,9 +766,9 @@
         document.getElementById('selectAllStudents').checked = false;
         
         updateSelectedCount();
-        updateEnrolledSelectedCount(); // NEW
+        updateEnrolledSelectedCount();
         updateAddButtonState();
-        updateEnrolledActionButtons(); // NEW
+        updateEnrolledActionButtons();
     }
 
     // Filter Students
@@ -864,7 +792,7 @@
         renderStudentsTable();
     }
 
-    // NEW: Bulk Deactivate Students
+    // Bulk Deactivate Students - FIXED
     async function bulkDeactivateStudents() {
         if (selectedEnrolledStudents.size === 0) {
             showAlert('Please select at least one enrolled student to deactivate', 'warning');
@@ -898,6 +826,7 @@
 
             console.log('Sending deactivation data:', requestData);
 
+            // FIXED: Changed to PUT method
             const response = await fetch(api('student-classes/bulk-deactivate'), {
                 method: 'PUT',
                 headers: {
@@ -930,12 +859,12 @@
             showAlert('Failed to deactivate students: ' + error.message, 'danger');
         } finally {
             deactivateBtn.disabled = false;
-            deactivateBtn.innerHTML = '<i class="fas fa-user-minus me-1"></i>Deactivate Selected';
+            deactivateBtn.innerHTML = originalText;
             updateEnrolledActionButtons();
         }
     }
 
-    // NEW: Deactivate Single Student
+    // Deactivate Single Student - FIXED
     async function deactivateSingleStudent(enrollmentId, studentId) {
         if (!confirm('Are you sure you want to deactivate this student?')) {
             return;
@@ -946,8 +875,9 @@
                 student_class_ids: [enrollmentId]
             };
 
+            // FIXED: Changed to PUT method
             const response = await fetch(api('student-classes/bulk-deactivate'), {
-                method: 'POST',
+                method: 'PUT',
                 headers: {
                     'X-CSRF-TOKEN': getCsrfToken(),
                     'Content-Type': 'application/json',
@@ -1056,7 +986,7 @@
         selectedCategoryName = '';
         selectedCategoryFee = 0;
         enrolledStudents = {};
-        selectedEnrolledStudents.clear(); // NEW
+        selectedEnrolledStudents.clear();
         
         document.querySelectorAll('.category-card').forEach(card => {
             card.classList.remove('selected');

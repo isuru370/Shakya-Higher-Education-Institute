@@ -62,10 +62,10 @@ class StudentPaymentService
         ]);
 
         try {
-            $qrCode = $request->qr_code;
+            $qrCode = trim($request->qr_code);
             $now = Carbon::now();
 
-            // 1️⃣ Determine temporary or permanent QR
+            // 1. Determine temporary or permanent QR
             if (str_starts_with($qrCode, 'TMP')) {
                 $student = Student::where('temporary_qr_code', $qrCode)
                     ->where('student_disable', false)
@@ -79,7 +79,10 @@ class StudentPaymentService
                     ], 404);
                 }
 
-                if ($student->temporary_qr_code_expire_date && $now->gt($student->temporary_qr_code_expire_date)) {
+                if (
+                    $student->temporary_qr_code_expire_date &&
+                    $now->gt($student->temporary_qr_code_expire_date)
+                ) {
                     return response()->json([
                         'status' => 'error',
                         'message' => 'Temporary QR code expired',
@@ -87,7 +90,6 @@ class StudentPaymentService
                     ], 403);
                 }
             } else {
-                // Permanent QR
                 $student = Student::where('custom_id', $qrCode)
                     ->where('student_disable', false)
                     ->first();
@@ -109,8 +111,8 @@ class StudentPaymentService
                 }
             }
 
-            // 2️⃣ Check student active
-            if ($student->is_active == 0) {
+            // 2. Check student active
+            if ((int) $student->is_active === 0) {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Student inactive',
@@ -118,7 +120,7 @@ class StudentPaymentService
                 ], 403);
             }
 
-            // 3️⃣ Fetch class-wise payments (existing function logic)
+            // 3. Fetch class-wise payments
             $studentClasses = StudentStudentStudentClass::with([
                 'student',
                 'classCategoryHasStudentClass.classCategory',
@@ -144,41 +146,67 @@ class StudentPaymentService
                     ->orderBy('payment_date', 'desc')
                     ->first();
 
+                $defaultFee = optional($studentClassModel->classCategoryHasStudentClass)->fees ?? 0;
+
+                if ($studentClassModel->is_free_card) {
+                    $finalFee = 0;
+                    $feeType = 'Free Card';
+                } elseif (!is_null($studentClassModel->custom_fee)) {
+                    $finalFee = $studentClassModel->custom_fee;
+                    $feeType = 'Custom Fee';
+                } elseif (!is_null($studentClassModel->discount_percentage)) {
+                    $finalFee = $defaultFee * (1 - ($studentClassModel->discount_percentage / 100));
+                    $feeType = $studentClassModel->discount_percentage . '% Discount';
+                } else {
+                    $finalFee = $defaultFee;
+                    $feeType = 'Normal';
+                }
+
                 return [
                     'student_student_student_classes_id' => $studentClassModel->id,
                     'student_id' => $studentClassModel->student_id,
+                    'student_classes_id' => $studentClassModel->student_classes_id,
                     'class_category_has_student_class_id' => $studentClassModel->class_category_has_student_class_id,
-                    'status' => $studentClassModel->status,
-                    'is_free_card' => $studentClassModel->is_free_card,
+
+                    'status' => (bool) $studentClassModel->status,
+                    'inactive_text' => $studentClassModel->status ? 'active' : 'inactive',
+
+                    'is_free_card' => (bool) $studentClassModel->is_free_card,
+                    'custom_fee' => $studentClassModel->custom_fee,
+                    'discount_percentage' => $studentClassModel->discount_percentage,
+                    'discount_type' => $studentClassModel->discount_type,
+                    'default_fee' => $defaultFee,
+                    'final_fee' => round($finalFee, 2),
+                    'fee_type' => $feeType,
+
                     'student' => [
-                        'id' => $studentClassModel->student->id,
-                        'custom_id' => $studentClassModel->student->custom_id,
-                        'first_name' => $studentClassModel->student->full_name,
-                        'last_name' => $studentClassModel->student->initial_name,
-                        'guardian_mobile' => $studentClassModel->student->guardian_mobile,
-                        'img_url' => $studentClassModel->student->img_url,
+                        'id' => optional($studentClassModel->student)->id,
+                        'custom_id' => optional($studentClassModel->student)->custom_id,
+                        'first_name' => optional($studentClassModel->student)->full_name,
+                        'last_name' => optional($studentClassModel->student)->initial_name,
+                        'guardian_mobile' => optional($studentClassModel->student)->guardian_mobile,
+                        'img_url' => optional($studentClassModel->student)->img_url,
                     ],
+
                     'class_category_has_student_class' => [
-                        'id' => $studentClassModel->classCategoryHasStudentClass->id,
-                        'fees' => $studentClassModel->classCategoryHasStudentClass->fees,
+                        'id' => optional($studentClassModel->classCategoryHasStudentClass)->id,
+                        'fees' => $defaultFee,
                         'class_category' => [
-                            'category_name' =>
-                            $studentClassModel->classCategoryHasStudentClass
-                                ->classCategory->category_name ?? null,
+                            'category_name' => optional(optional($studentClassModel->classCategoryHasStudentClass)->classCategory)->category_name,
                         ]
                     ],
+
                     'student_class' => [
-                        'id' => $studentClassModel->studentClass->id,
-                        'class_name' => $studentClassModel->studentClass->class_name,
-                        'grade' => $studentClassModel->studentClass->grade ? [
-                            'grade_name' =>
-                            $studentClassModel->studentClass->grade->grade_name
+                        'id' => optional($studentClassModel->studentClass)->id,
+                        'class_name' => optional($studentClassModel->studentClass)->class_name,
+                        'grade' => optional($studentClassModel->studentClass->grade) ? [
+                            'grade_name' => optional($studentClassModel->studentClass->grade)->grade_name
                         ] : null,
-                        'subject' => $studentClassModel->studentClass->subject ? [
-                            'subject_name' =>
-                            $studentClassModel->studentClass->subject->subject_name
+                        'subject' => optional($studentClassModel->studentClass->subject) ? [
+                            'subject_name' => optional($studentClassModel->studentClass->subject)->subject_name
                         ] : null,
                     ],
+
                     'latest_payment' => $latestPayment ? [
                         'payment_id' => $latestPayment->id,
                         'amount' => $latestPayment->amount,
@@ -193,7 +221,7 @@ class StudentPaymentService
                 'message' => 'Student class payments fetched successfully',
                 'data' => $result
             ], 200);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to fetch payments data',
