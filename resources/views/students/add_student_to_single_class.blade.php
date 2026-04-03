@@ -143,24 +143,61 @@
                                 </div>
                             </div>
 
-                            <!-- Free Card Option -->
+                            <!-- Fee Options -->
                             <div class="row mt-4">
                                 <div class="col-12">
                                     <div class="card border-0 shadow-sm">
                                         <div class="card-header bg-light">
-                                            <h6 class="card-title mb-0 fw-semibold">Enrollment Options</h6>
+                                            <h6 class="card-title mb-0 fw-semibold">Fee Options</h6>
                                         </div>
                                         <div class="card-body">
-                                            <div class="form-check form-switch">
+                                            <!-- Free Card Option -->
+                                            <div class="form-check form-switch mb-3">
                                                 <input class="form-check-input" type="checkbox" id="freeCardCheckbox"
-                                                    style="transform: scale(1.2);">
+                                                    style="transform: scale(1.2);" onchange="toggleFeeFields()">
                                                 <label class="form-check-label fw-semibold" for="freeCardCheckbox">
                                                     <i class="fas fa-id-card me-2 text-warning"></i>Mark as Free Card
                                                 </label>
                                                 <small class="form-text text-muted d-block mt-1">
-                                                    Enable this if the student should have free access to this class without
-                                                    payment.
+                                                    Enable this if the student should have free access to this class without payment.
                                                 </small>
+                                            </div>
+
+                                            <!-- Custom Fee and Discount Fields -->
+                                            <div id="feeFields">
+                                                <div class="row">
+                                                    <div class="col-md-6 mb-3">
+                                                        <label for="customFee" class="form-label">Custom Fee</label>
+                                                        <div class="input-group">
+                                                            <span class="input-group-text">Rs.</span>
+                                                            <input type="number" class="form-control" id="customFee" 
+                                                                placeholder="Enter custom fee" step="0.01" min="0">
+                                                        </div>
+                                                        <small class="text-muted">Override the default class fee</small>
+                                                    </div>
+                                                    <div class="col-md-6 mb-3">
+                                                        <label for="discountPercentage" class="form-label">Discount Percentage</label>
+                                                        <div class="input-group">
+                                                            <input type="number" class="form-control" id="discountPercentage" 
+                                                                placeholder="Enter discount %" step="0.01" min="0" max="100">
+                                                            <span class="input-group-text">%</span>
+                                                        </div>
+                                                        <small class="text-muted">Apply percentage discount to the fee</small>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="mb-3">
+                                                    <label for="discountType" class="form-label">Discount Type (Optional)</label>
+                                                    <select class="form-select" id="discountType">
+                                                        <option value="">Select discount type</option>
+                                                        <option value="half_card">Half Card</option>
+                                                        <option value="early_bird">Early Bird</option>
+                                                        <option value="scholarship">Scholarship</option>
+                                                        <option value="referral">Referral</option>
+                                                        <option value="other">Other</option>
+                                                    </select>
+                                                    <small class="text-muted">Type of discount being applied</small>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -195,7 +232,7 @@
             </div>
         </div>
 
-        <!-- Current Enrollments Section - MOVED TO BOTTOM -->
+        <!-- Current Enrollments Section -->
         <div class="row mb-4" id="enrollmentsSection" style="display: none;">
             <div class="col-12">
                 <div class="card border-0 shadow-lg">
@@ -306,6 +343,13 @@
             font-weight: 600;
             z-index: 10;
         }
+        
+        .fee-highlight {
+            background-color: #e7f3ff;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
     </style>
 @endpush
 
@@ -342,6 +386,22 @@
                 document.getElementById('classSearch').value = '';
             });
         });
+
+        // Toggle fee fields based on free card checkbox
+        function toggleFeeFields() {
+            const isFreeCard = document.getElementById('freeCardCheckbox').checked;
+            const feeFields = document.getElementById('feeFields');
+            
+            if (isFreeCard) {
+                feeFields.style.display = 'none';
+                // Clear values when free card is checked
+                document.getElementById('customFee').value = '';
+                document.getElementById('discountPercentage').value = '';
+                document.getElementById('discountType').value = '';
+            } else {
+                feeFields.style.display = 'block';
+            }
+        }
 
         // Load Student Information
         async function loadStudentInfo() {
@@ -385,7 +445,6 @@
         }
 
         // Load Student Enrollments
-        // Load Student Enrollments - FIXED VERSION
         async function loadStudentEnrollments() {
             try {
                 const response = await fetch(api(`student-classes/student/${studentId}`));
@@ -395,7 +454,7 @@
                 }
 
                 const data = await response.json();
-                console.log('Enrollments API response:', data); // Debug log
+                console.log('Enrollments API response:', data);
 
                 let enrollments = [];
 
@@ -405,20 +464,16 @@
                 } else if (data.data && Array.isArray(data.data)) {
                     enrollments = data.data;
                 } else if (data.data && !Array.isArray(data.data) && data.data.id) {
-                    // Single enrollment object
                     enrollments = [data.data];
                 } else if (data.id) {
-                    // Direct enrollment object
                     enrollments = [data];
                 } else if (data.student) {
-                    // Response with student property
                     enrollments = [data];
                 } else if (data.enrollments && Array.isArray(data.enrollments)) {
                     enrollments = data.enrollments;
                 }
 
-                console.log('Processed enrollments:', enrollments); // Debug log
-
+                console.log('Processed enrollments:', enrollments);
                 displayStudentEnrollments(enrollments);
 
             } catch (error) {
@@ -428,40 +483,32 @@
             }
         }
 
-        // Display Student Enrollments - UPDATED with better error handling
+        // Display Student Enrollments
         function displayStudentEnrollments(enrollments) {
             const enrollmentsSection = document.getElementById('enrollmentsSection');
             const enrollmentsList = document.getElementById('enrollmentsList');
             const noEnrollmentsDiv = document.getElementById('noEnrollments');
             const enrollmentCount = document.getElementById('enrollmentCount');
 
-            // Clear existing content
             enrollmentsList.innerHTML = '';
-
-            // Show section immediately
             enrollmentsSection.style.display = 'block';
 
-            // Validate and filter enrollments
             const validEnrollments = [];
 
             enrollments.forEach(enrollment => {
                 try {
-                    // Check if this is a valid enrollment object
                     if (!enrollment || typeof enrollment !== 'object') {
                         return;
                     }
 
-                    // Check for nested structure
                     let studentClass = enrollment.student_classes || enrollment.student_class;
                     let category = enrollment.class_category_has_student_class || enrollment.category;
 
-                    // If we have a student_class_id but no student_class object, we can't display it properly
                     if (!studentClass && enrollment.student_class_id) {
                         console.warn('Enrollment has student_class_id but no student_class object:', enrollment);
                         return;
                     }
 
-                    // Check if we have at least some data to display
                     if (studentClass || enrollment.id) {
                         validEnrollments.push({
                             id: enrollment.id || enrollment.enrollment_id,
@@ -469,7 +516,9 @@
                             is_free_card: enrollment.is_free_card,
                             created_at: enrollment.created_at || enrollment.enrollment_date,
                             student_classes: studentClass,
-                            class_category_has_student_class: category
+                            class_category_has_student_class: category,
+                            final_fee: enrollment.final_fee,
+                            fee_type: enrollment.fee_type
                         });
                     }
                 } catch (e) {
@@ -490,7 +539,6 @@
                 const studentClass = enrollment.student_classes;
                 const category = enrollment.class_category_has_student_class;
 
-                // Class information
                 const className = studentClass ?
                     (studentClass.class_name || `Class ${studentClass.id || ''}`) :
                     'Unnamed Class';
@@ -498,7 +546,6 @@
                 const gradeName = studentClass && studentClass.grade ?
                     `G${studentClass.grade.grade_name}` : 'N/A';
 
-                // Teacher information
                 let teacherName = 'N/A';
                 if (studentClass && studentClass.teacher) {
                     teacherName = `${studentClass.teacher.fname || ''} ${studentClass.teacher.lname || ''}`.trim();
@@ -506,33 +553,27 @@
                     teacherName = studentClass.teacher_name;
                 }
 
-                // Subject information
                 const subjectName = studentClass && studentClass.subject ?
                     studentClass.subject.subject_name : 'N/A';
 
-                // Category information
                 const categoryName = category && category.class_category ?
                     category.class_category.category_name :
                     (category ? category.category_name : 'General');
 
-                // Fees
-                const fees = category ? (category.fees || 0) : 0;
-
-                // Status and badges
-                const isActive = enrollment.status === 1 || enrollment.status === 'active';
+                const isActive = enrollment.status === 1 || enrollment.status === 'active' || enrollment.status === true;
                 const statusBadge = isActive ?
                     '<span class="badge bg-success bg-gradient rounded-pill px-3 py-2">Active</span>' :
                     '<span class="badge bg-secondary bg-gradient rounded-pill px-3 py-2">Inactive</span>';
 
-                // Free card status
                 const freeCardStatus = enrollment.is_free_card === 1 || enrollment.is_free_card === true;
                 const freeCardBadge = freeCardStatus ?
                     '<span class="badge bg-warning bg-gradient text-dark rounded-pill px-2 py-1"><i class="fas fa-id-card me-1"></i>Free Card</span>' :
                     '<span class="badge bg-light bg-gradient text-dark border rounded-pill px-2 py-1"><i class="fas fa-money-bill me-1"></i>Paid</span>';
 
-                // Format enrollment date
                 const enrollmentDate = enrollment.created_at ?
                     formatDate(enrollment.created_at) : 'N/A';
+                    
+                const finalFee = enrollment.final_fee || 'N/A';
 
                 enrollmentsHTML += `
                     <div class="col-auto">
@@ -545,16 +586,14 @@
                                 </div>
                             </div>
                             <div class="card-body p-3">
-                                <!-- Status and Fee Row -->
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <div>
                                         ${statusBadge}
                                         ${freeCardBadge}
                                     </div>
-                                    <span class="badge bg-info bg-gradient fs-6">Rs. ${fees}</span>
+                                    <span class="badge bg-info bg-gradient fs-6">Rs. ${finalFee}</span>
                                 </div>
 
-                                <!-- Info Items -->
                                 <div class="mb-2">
                                     <div class="d-flex align-items-center mb-2">
                                         <i class="fas fa-tag text-muted me-2 fs-7"></i>
@@ -570,7 +609,6 @@
                                     </div>
                                 </div>
 
-                                <!-- Enrollment Details -->
                                 <div class="border-top pt-2 mt-2">
                                     <div class="row g-1 mb-3">
                                         <div class="col-6">
@@ -588,7 +626,6 @@
                                         </div>
                                     </div>
 
-                                    <!-- Action Buttons -->
                                     <div class="action-buttons">
                                         ${isActive ?
                         `<button class="btn btn-outline-danger btn-sm w-100" onclick="deactivateEnrollment(${enrollment.id})">
@@ -610,7 +647,7 @@
             noEnrollmentsDiv.classList.add('d-none');
         }
 
-        // Deactivate Enrollment - UPDATED to single endpoint
+        // Deactivate Enrollment
         async function deactivateEnrollment(enrollmentId) {
             if (!confirm('Are you sure you want to deactivate this enrollment?')) {
                 return;
@@ -629,7 +666,7 @@
 
                 if (response.ok) {
                     showAlert('Enrollment deactivated successfully!', 'success');
-                    loadStudentEnrollments(); // Reload to show updated status
+                    loadStudentEnrollments();
                 } else {
                     throw new Error(result.message || 'Failed to deactivate enrollment');
                 }
@@ -639,7 +676,7 @@
             }
         }
 
-        // Activate Enrollment - UPDATED to single endpoint
+        // Activate Enrollment
         async function activateEnrollment(enrollmentId) {
             if (!confirm('Are you sure you want to activate this enrollment?')) {
                 return;
@@ -659,7 +696,7 @@
 
                 if (response.ok) {
                     showAlert('Enrollment activated successfully!', 'success');
-                    loadStudentEnrollments(); // Reload to show updated status
+                    loadStudentEnrollments();
                 } else {
                     throw new Error(result.message || 'Failed to activate enrollment');
                 }
@@ -697,32 +734,32 @@
 
             if (student) {
                 studentInfoDiv.innerHTML = `
-                            <div class="row">
-                                <div class="col-md-3">
-                                    <strong>Student ID:</strong><br>
-                                    <span class="badge bg-secondary fs-6">${student.custom_id}</span>
-                                </div>
-                                <div class="col-md-3">
-                                    <strong>Name:</strong><br>
-                                    <span class="fs-6 fw-bold">${student.fname} ${student.lname}</span>
-                                </div>
-                                <div class="col-md-3">
-                                    <strong>Grade:</strong><br>
-                                    <span class="badge bg-info">${student.grade ? 'Grade ' + student.grade.grade_name : 'N/A'}</span>
-                                </div>
-                                <div class="col-md-3">
-                                    <strong>Mobile:</strong><br>
-                                    <span>${student.mobile || 'N/A'}</span>
-                                </div>
-                            </div>
-                        `;
+                    <div class="row">
+                        <div class="col-md-3">
+                            <strong>Student ID:</strong><br>
+                            <span class="badge bg-secondary fs-6">${student.custom_id || 'N/A'}</span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Name:</strong><br>
+                            <span class="fs-6 fw-bold">${student.fname || ''} ${student.lname || ''}</span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Grade:</strong><br>
+                            <span class="badge bg-info">${student.grade ? 'Grade ' + student.grade.grade_name : 'N/A'}</span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Mobile:</strong><br>
+                            <span>${student.mobile || 'N/A'}</span>
+                        </div>
+                    </div>
+                `;
             } else {
                 studentInfoDiv.innerHTML = `
-                            <div class="alert alert-warning">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                Student information not available. Student ID: ${studentId}
-                            </div>
-                        `;
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Student information not available. Student ID: ${studentId}
+                    </div>
+                `;
             }
         }
 
@@ -784,30 +821,30 @@
                 const fullClassName = `${className} ${gradeName}`;
 
                 const classCard = `
-                            <div class="col-auto">
-                                <div class="card class-card h-100" onclick="selectClass(${JSON.stringify(classItem).replace(/"/g, '&quot;')})">
-                                    <div class="card-body">
-                                        <h6 class="card-title">${highlightSearchTerm(fullClassName, searchTerm)}</h6>
-                                        <div class="mb-2">
-                                            <small class="text-muted">Teacher:</small><br>
-                                            <strong>${studentClass.teacher ? highlightSearchTerm(studentClass.teacher.fname + ' ' + studentClass.teacher.lname, searchTerm) : 'N/A'}</strong>
-                                            <br>
-                                            <small class="text-muted">${studentClass.teacher ? studentClass.teacher.custom_id : ''}</small>
-                                        </div>
-                                        <div class="mb-2">
-                                            <small class="text-muted">Subject:</small><br>
-                                            <span class="badge bg-light text-dark">${studentClass.subject ? studentClass.subject.subject_name : 'N/A'}</span>
-                                            <span class="badge bg-info">Grade ${studentClass.grade ? studentClass.grade.grade_name : 'N/A'}</span>
-                                        </div>
-                                        <div class="mt-2">
-                                            <small class="text-muted">Category & Fee:</small><br>
-                                            <span class="badge bg-success">${classCategory ? highlightSearchTerm(classCategory.category_name, searchTerm) : 'N/A'}</span>
-                                            <span class="badge bg-primary ms-1">Rs. ${classItem.fees || 0}</span>
-                                        </div>
-                                    </div>
+                    <div class="col-auto">
+                        <div class="card class-card h-100" onclick="selectClass(${JSON.stringify(classItem).replace(/"/g, '&quot;')})">
+                            <div class="card-body">
+                                <h6 class="card-title">${highlightSearchTerm(fullClassName, searchTerm)}</h6>
+                                <div class="mb-2">
+                                    <small class="text-muted">Teacher:</small><br>
+                                    <strong>${studentClass.teacher ? highlightSearchTerm(studentClass.teacher.fname + ' ' + studentClass.teacher.lname, searchTerm) : 'N/A'}</strong>
+                                    <br>
+                                    <small class="text-muted">${studentClass.teacher ? studentClass.teacher.custom_id : ''}</small>
+                                </div>
+                                <div class="mb-2">
+                                    <small class="text-muted">Subject:</small><br>
+                                    <span class="badge bg-light text-dark">${studentClass.subject ? studentClass.subject.subject_name : 'N/A'}</span>
+                                    <span class="badge bg-info">Grade ${studentClass.grade ? studentClass.grade.grade_name : 'N/A'}</span>
+                                </div>
+                                <div class="mt-2">
+                                    <small class="text-muted">Category & Fee:</small><br>
+                                    <span class="badge bg-success">${classCategory ? highlightSearchTerm(classCategory.category_name, searchTerm) : 'N/A'}</span>
+                                    <span class="badge bg-primary ms-1">Rs. ${classItem.fees || 0}</span>
                                 </div>
                             </div>
-                        `;
+                        </div>
+                    </div>
+                `;
                 classesListDiv.innerHTML += classCard;
             });
         }
@@ -829,8 +866,12 @@
             });
             event.currentTarget.classList.add('selected');
 
-            // Reset free card checkbox
+            // Reset free card checkbox and fee fields
             document.getElementById('freeCardCheckbox').checked = false;
+            document.getElementById('customFee').value = '';
+            document.getElementById('discountPercentage').value = '';
+            document.getElementById('discountType').value = '';
+            toggleFeeFields();
 
             // Show confirmation section
             showConfirmationSection(classData);
@@ -847,52 +888,52 @@
 
             // Populate student details
             document.getElementById('studentDetails').innerHTML = `
-                        <div class="mb-2">
-                            <strong>Student ID:</strong> ${currentStudent ? currentStudent.custom_id : studentId}
-                        </div>
-                        <div class="mb-2">
-                            <strong>Name:</strong> ${currentStudent ? currentStudent.fname + ' ' + currentStudent.lname : 'N/A'}
-                        </div>
-                        <div class="mb-2">
-                            <strong>Grade:</strong> <span class="badge bg-info">${currentStudent && currentStudent.grade ? 'Grade ' + currentStudent.grade.grade_name : 'N/A'}</span>
-                        </div>
-                        <div class="mb-2">
-                            <strong>Mobile:</strong> ${currentStudent ? currentStudent.mobile : 'N/A'}
-                        </div>
-                    `;
+                <div class="mb-2">
+                    <strong>Student ID:</strong> ${currentStudent ? currentStudent.custom_id : studentId}
+                </div>
+                <div class="mb-2">
+                    <strong>Name:</strong> ${currentStudent ? currentStudent.fname + ' ' + currentStudent.lname : 'N/A'}
+                </div>
+                <div class="mb-2">
+                    <strong>Grade:</strong> <span class="badge bg-info">${currentStudent && currentStudent.grade ? 'Grade ' + currentStudent.grade.grade_name : 'N/A'}</span>
+                </div>
+                <div class="mb-2">
+                    <strong>Mobile:</strong> ${currentStudent ? currentStudent.mobile : 'N/A'}
+                </div>
+            `;
 
             // Populate class details
             document.getElementById('classDetails').innerHTML = `
-                        <div class="mb-3">
-                            <strong>Class Name:</strong> 
-                            <div class="class-name-highlight mt-1 p-2 bg-primary text-white rounded text-center fw-bold">
-                                ${fullClassName}
-                            </div>
-                        </div>
-                        <div class="mb-2">
-                            <strong>Teacher:</strong> ${studentClass.teacher ? studentClass.teacher.fname + ' ' + studentClass.teacher.lname : 'N/A'}
-                            <br><small class="text-muted">${studentClass.teacher ? studentClass.teacher.custom_id : ''}</small>
-                        </div>
-                        <div class="mb-2">
-                            <strong>Subject:</strong> <span class="badge bg-light text-dark">${studentClass.subject ? studentClass.subject.subject_name : 'N/A'}</span>
-                        </div>
-                        <div class="mb-2">
-                            <strong>Grade:</strong> <span class="badge bg-info">${studentClass.grade ? 'Grade ' + studentClass.grade.grade_name : 'N/A'}</span>
-                        </div>
-                        <div class="mb-2">
-                            <strong>Category:</strong> <span class="badge bg-success">${classCategory ? classCategory.category_name : 'N/A'}</span>
-                        </div>
-                        <div class="mb-2">
-                            <strong>Fee:</strong> <span class="badge bg-primary">Rs. ${classData.fees || 0}</span>
-                        </div>
-                    `;
+                <div class="mb-3">
+                    <strong>Class Name:</strong> 
+                    <div class="class-name-highlight mt-1 p-2 bg-primary text-white rounded text-center fw-bold">
+                        ${fullClassName}
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <strong>Teacher:</strong> ${studentClass.teacher ? studentClass.teacher.fname + ' ' + studentClass.teacher.lname : 'N/A'}
+                    <br><small class="text-muted">${studentClass.teacher ? studentClass.teacher.custom_id : ''}</small>
+                </div>
+                <div class="mb-2">
+                    <strong>Subject:</strong> <span class="badge bg-light text-dark">${studentClass.subject ? studentClass.subject.subject_name : 'N/A'}</span>
+                </div>
+                <div class="mb-2">
+                    <strong>Grade:</strong> <span class="badge bg-info">${studentClass.grade ? 'Grade ' + studentClass.grade.grade_name : 'N/A'}</span>
+                </div>
+                <div class="mb-2">
+                    <strong>Category:</strong> <span class="badge bg-success">${classCategory ? classCategory.category_name : 'N/A'}</span>
+                </div>
+                <div class="mb-2">
+                    <strong>Default Fee:</strong> <span class="badge bg-primary">Rs. ${classData.fees || 0}</span>
+                </div>
+            `;
 
             // Show confirmation section
             document.getElementById('confirmationSection').classList.remove('d-none');
             document.getElementById('initialState').classList.add('d-none');
         }
 
-        // Add Student to Class - UPDATED with free card option
+        // Add Student to Class - UPDATED to match controller
         async function addStudentToClass() {
             if (!selectedClass) {
                 showAlert('Please select a class first', 'warning');
@@ -907,12 +948,19 @@
                 addBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Adding Student...';
 
                 const isFreeCard = document.getElementById('freeCardCheckbox').checked;
+                const customFee = document.getElementById('customFee').value;
+                const discountPercentage = document.getElementById('discountPercentage').value;
+                const discountType = document.getElementById('discountType').value;
 
                 const requestData = {
                     student_id: parseInt(studentId),
                     student_classes_id: selectedClass.student_classes_id,
                     class_category_has_student_class_id: selectedClass.id,
-                    is_free_card: isFreeCard ? 1 : 0
+                    status: 1,
+                    is_free_card: isFreeCard ? 1 : 0,
+                    custom_fee: customFee ? parseFloat(customFee) : null,
+                    discount_percentage: discountPercentage ? parseFloat(discountPercentage) : null,
+                    discount_type: discountType ? discountType : null
                 };
 
                 console.log('Adding student to class:', requestData);
@@ -931,15 +979,20 @@
 
                 if (result.status === 'success') {
                     showAlert('Student added to class successfully!', 'success');
-
+                    
                     // Reload enrollments to show the new one
                     await loadStudentEnrollments();
-
+                    
                     // Clear selection
                     clearSelection();
-
+                    
                 } else {
-                    throw new Error(result.message || 'Failed to add student to class');
+                    // Handle duplicate entry or other errors
+                    if (result.message && result.message.includes('duplicate')) {
+                        showAlert('This student is already enrolled in this class!', 'warning');
+                    } else {
+                        throw new Error(result.message || 'Failed to add student to class');
+                    }
                 }
 
             } catch (error) {
@@ -947,7 +1000,7 @@
                 showAlert('Failed to add student: ' + error.message, 'danger');
             } finally {
                 addBtn.disabled = false;
-                addBtn.innerHTML = '<i class="fas fa-user-plus me-2"></i>Add Student to Class';
+                addBtn.innerHTML = originalText;
             }
         }
 
@@ -960,6 +1013,10 @@
             document.getElementById('confirmationSection').classList.add('d-none');
             document.getElementById('initialState').classList.remove('d-none');
             document.getElementById('freeCardCheckbox').checked = false;
+            document.getElementById('customFee').value = '';
+            document.getElementById('discountPercentage').value = '';
+            document.getElementById('discountType').value = '';
+            toggleFeeFields();
         }
 
         function showSearchLoading() {
@@ -986,9 +1043,9 @@
             alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
             alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
             alertDiv.innerHTML = `
-                        <strong>${type === 'success' ? 'Success!' : type === 'warning' ? 'Warning!' : 'Error!'}</strong> ${message}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    `;
+                <strong>${type === 'success' ? 'Success!' : type === 'warning' ? 'Warning!' : 'Error!'}</strong> ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
 
             document.body.appendChild(alertDiv);
 
