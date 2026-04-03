@@ -66,72 +66,59 @@ class TeacherLedgerSummaryService
     private function getOpeningBalance(string $yearMonth): float
     {
         try {
-
-            if (!preg_match('/^\d{4}-\d{2}$/', $yearMonth) || $yearMonth <= '2024-01') {
+            if (!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $yearMonth)) {
                 return 0.0;
             }
 
-            $startDate = Carbon::create(2026, 1, 1)->startOfDay();
-            $endDate   = Carbon::createFromFormat('Y-m', $yearMonth)->startOfMonth();
+            $requestedMonth = Carbon::createFromFormat('Y-m', $yearMonth)->startOfMonth();
+            $previousMonth = $requestedMonth->copy()->subMonth();
 
-            if ($endDate->lessThanOrEqualTo($startDate)) {
+            $monthStart = $previousMonth->copy()->startOfMonth();
+            $monthEnd   = $previousMonth->copy()->endOfMonth();
+
+            // optional limit: before 2026-01 return 0
+            if ($monthStart->lt(Carbon::create(2026, 1, 1)->startOfMonth())) {
                 return 0.0;
             }
 
-            $totalBalance = 0;
+            $totalBalance = 0.0;
+
             $teachers = Teacher::where('is_active', 1)->get();
 
-            $period = $startDate->copy();
+            foreach ($teachers as $teacher) {
+                $teacherTotalShare = 0.0;
 
-            while ($period->lt($endDate)) {
+                $classes = ClassRoom::where('teacher_id', $teacher->id)
+                    ->where('is_active', 1)
+                    ->get();
 
-                $monthStart = $period->copy()->startOfMonth();
-                $monthEnd   = $period->copy()->endOfMonth();
+                foreach ($classes as $class) {
+                    $percentage = (float) ($class->teacher_percentage ?? 0);
 
+                    $classEarnings = Payments::where('status', 1)
+                        ->whereBetween('payment_date', [$monthStart, $monthEnd])
+                        ->whereHas('studentStudentClass.studentClass', function ($q) use ($class) {
+                            $q->where('id', $class->id)
+                                ->where('is_active', 1);
+                        })
+                        ->sum('amount');
 
-                foreach ($teachers as $teacher) {
-
-                    $teacherTotalShare = 0;
-
-                    $classes = ClassRoom::where('teacher_id', $teacher->id)
-                        ->where('is_active', 1)
-                        ->get();
-
-                    foreach ($classes as $class) {
-
-                        $percentage = $class->teacher_percentage ?? 0;
-
-                        $classEarnings = Payments::where('status', 1)
-                            ->whereBetween('payment_date', [$monthStart, $monthEnd])
-                            ->whereHas('studentStudentClass.studentClass', function ($q) use ($class) {
-                                $q->where('id', $class->id)
-                                    ->where('is_active', 1);
-                            })
-                            ->sum('amount');
-
-                        $teacherShare = ($classEarnings * $percentage) / 100;
-
-                        $teacherTotalShare += $teacherShare;
-                    }
-
-                    // teacher payment (MONTH level)
-                    $teacherPaid = TeacherPayment::where('status', 1)
-                        ->whereBetween('date', [$monthStart, $monthEnd])
-                        ->where('teacher_id', $teacher->id)
-                        ->sum('payment');
-
-                    $teacherNet = $teacherTotalShare - $teacherPaid;
-
-
-                    $totalBalance += $teacherNet;
+                    $teacherShare = ($classEarnings * $percentage) / 100;
+                    $teacherTotalShare += $teacherShare;
                 }
 
-                $period->addMonth();
+                $teacherPaid = TeacherPayment::where('status', 1)
+                    ->whereBetween('date', [$monthStart, $monthEnd])
+                    ->where('teacher_id', $teacher->id)
+                    ->sum('payment');
+
+                $teacherNet = $teacherTotalShare - $teacherPaid;
+
+                $totalBalance += $teacherNet;
             }
 
             return round($totalBalance, 2);
         } catch (Throwable $e) {
-
             return 0.0;
         }
     }

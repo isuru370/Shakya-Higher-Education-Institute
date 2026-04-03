@@ -373,6 +373,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::prefix('payments')->group(function () {
         Route::post('/', [PaymentsController::class, 'storePayment']);
+        Route::post('/bulk', [PaymentsController::class, 'storeBulkPayments']);
         Route::get('/by-date/{date}', [PaymentsController::class, 'getPaymentsByDate']);
         Route::get('/receipt/{payment_id}', [PaymentsController::class, 'receiptPrint']);
         Route::get('/mobile', [PaymentsController::class, 'mobileReadStudentPayment']); // ✅ fixed

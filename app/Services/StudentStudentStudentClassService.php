@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\ClassCategoryHasStudentClass;
 use App\Models\Student;
 use App\Models\StudentStudentStudentClass;
 use Carbon\Carbon;
@@ -15,16 +16,15 @@ class StudentStudentStudentClassService
     public function readStudentClass(Request $request)
     {
         try {
-            $request->validate([
+            $validated = $request->validate([
                 'qr_code' => 'required|string',
             ]);
 
-            $qrCode = $request->qr_code;
+            $qrCode = trim($validated['qr_code']);
             $now = Carbon::now();
 
-            // 1️⃣ Determine temporary or permanent QR
+            // 1. Find student by QR type
             if (str_starts_with($qrCode, 'TMP')) {
-
                 $student = Student::where('temporary_qr_code', $qrCode)
                     ->where('student_disable', false)
                     ->first();
@@ -48,8 +48,6 @@ class StudentStudentStudentClassService
                     ], 403);
                 }
             } else {
-
-                // Permanent QR
                 $student = Student::where('custom_id', $qrCode)
                     ->where('student_disable', false)
                     ->first();
@@ -71,48 +69,58 @@ class StudentStudentStudentClassService
                 }
             }
 
-            // 2️⃣ Get student classes (optional)
+            // 2. Load student classes with fee/category details
             $classes = StudentStudentStudentClass::with([
                 'studentClass',
                 'studentClass.grade',
                 'studentClass.subject',
-                'classCategoryHasStudentClass.classCategory'
+                'categoryFee.classCategory',
             ])
                 ->where('student_id', $student->id)
                 ->get()
                 ->map(function ($item) {
-
                     return [
                         'student_student_student_classes_id' => $item->id,
                         'status' => (bool) $item->status,
+                        'inactive_text' => $item->status ? 'active' : 'inactive',
+
                         'is_free_card' => (bool) $item->is_free_card,
+                        'custom_fee' => $item->custom_fee,
+                        'discount_percentage' => $item->discount_percentage,
+                        'discount_type' => $item->discount_type,
+                        'default_fee' => $item->default_fee,
+                        'final_fee' => $item->final_fee,
+                        'fee_type' => $item->fee_type,
 
                         'student_class' => [
                             'id' => optional($item->studentClass)->id,
                             'class_name' => optional($item->studentClass)->class_name,
                             'medium' => optional($item->studentClass)->medium,
                         ],
+
                         'grade' => [
-                            'id' => optional($item->studentClass->grade)->id,
-                            'grade_name' => optional($item->studentClass->grade)->grade_name,
+                            'id' => optional(optional($item->studentClass)->grade)->id,
+                            'grade_name' => optional(optional($item->studentClass)->grade)->grade_name,
                         ],
 
                         'subject' => [
-                            'id' => optional($item->studentClass->subject)->id,
-                            'subject_name' => optional($item->studentClass->subject)->subject_name,
+                            'id' => optional(optional($item->studentClass)->subject)->id,
+                            'subject_name' => optional(optional($item->studentClass)->subject)->subject_name,
                         ],
 
                         'class_category_has_student_class' => [
-                            'id' => optional($item->classCategoryHasStudentClass)->id,
-                            'fees' => optional($item->classCategoryHasStudentClass)->fees,
+                            'id' => optional($item->categoryFee)->id,
+                            'fees' => optional($item->categoryFee)->fees,
                             'class_category' => [
-                                'category_name' => optional(optional($item->classCategoryHasStudentClass)->classCategory)->category_name,
+                                'id' => optional(optional($item->categoryFee)->classCategory)->id,
+                                'category_name' => optional(optional($item->categoryFee)->classCategory)->category_name,
                             ],
                         ],
                     ];
-                });
+                })
+                ->values();
 
-            // 3️⃣ Student details (always returned)
+            // 3. Student details
             $studentData = [
                 'id' => $student->id,
                 'custom_id' => $student->custom_id,
@@ -127,11 +135,10 @@ class StudentStudentStudentClassService
                 'message' => 'Student data fetched successfully',
                 'data' => [
                     'student' => $studentData,
-                    'classes' => $classes
+                    'classes' => $classes,
                 ]
             ], 200);
-        } catch (Exception $e) {
-
+        } catch (\Throwable $e) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to fetch student data',
@@ -172,28 +179,92 @@ class StudentStudentStudentClassService
     public function allDetailsGetStudentsByClassAndCategory($classId, $categoryId)
     {
         try {
-            // Fetch students with related models (Eager Loading)
-            $students = StudentStudentStudentClass::with(['student', 'studentClass', 'classCategoryHasStudentClass'])
+            $classId = (int) $classId;
+            $categoryId = (int) $categoryId;
+
+            $students = StudentStudentStudentClass::with([
+                'student',
+                'studentClass',
+                'studentClass.grade',
+                'studentClass.subject',
+                'categoryFee.classCategory',
+            ])
                 ->where('student_classes_id', $classId)
                 ->where('class_category_has_student_class_id', $categoryId)
-                ->get();
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'id' => $item->id,
+                        'student_id' => $item->student_id,
+                        'student_classes_id' => $item->student_classes_id,
+                        'class_category_has_student_class_id' => $item->class_category_has_student_class_id,
+
+                        'status' => (bool) $item->status,
+                        'inactive_text' => $item->status ? 'active' : 'inactive',
+
+                        'is_free_card' => (bool) $item->is_free_card,
+                        'custom_fee' => $item->custom_fee,
+                        'discount_percentage' => $item->discount_percentage,
+                        'discount_type' => $item->discount_type,
+                        'default_fee' => $item->default_fee,
+                        'final_fee' => $item->final_fee,
+                        'fee_type' => $item->fee_type,
+
+                        'student' => [
+                            'id' => optional($item->student)->id,
+                            'custom_id' => optional($item->student)->custom_id,
+                            'full_name' => optional($item->student)->full_name,
+                            'initial_name' => optional($item->student)->initial_name,
+                            'guardian_mobile' => optional($item->student)->guardian_mobile,
+                            'img_url' => optional($item->student)->img_url,
+                        ],
+
+                        'student_class' => [
+                            'id' => optional($item->studentClass)->id,
+                            'class_name' => optional($item->studentClass)->class_name,
+                            'medium' => optional($item->studentClass)->medium,
+                        ],
+
+                        'grade' => [
+                            'id' => optional(optional($item->studentClass)->grade)->id,
+                            'grade_name' => optional(optional($item->studentClass)->grade)->grade_name,
+                        ],
+
+                        'subject' => [
+                            'id' => optional(optional($item->studentClass)->subject)->id,
+                            'subject_name' => optional(optional($item->studentClass)->subject)->subject_name,
+                        ],
+
+                        'class_category_has_student_class' => [
+                            'id' => optional($item->categoryFee)->id,
+                            'fees' => optional($item->categoryFee)->fees,
+                            'class_category' => [
+                                'id' => optional(optional($item->categoryFee)->classCategory)->id,
+                                'category_name' => optional(optional($item->categoryFee)->classCategory)->category_name,
+                            ],
+                        ],
+                    ];
+                })
+                ->values();
 
             if ($students->isEmpty()) {
                 return response()->json([
-                    'status'  => 'empty',
-                    'message' => 'No students assigned to this class and category.'
+                    'status' => 'empty',
+                    'message' => 'No students assigned to this class and category.',
+                    'data' => []
                 ], 200);
             }
 
             return response()->json([
                 'status' => 'success',
-                'data'   => $students
+                'count' => $students->count(),
+                'data' => $students
             ], 200);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             return response()->json([
-                'status'  => 'error',
+                'status' => 'error',
                 'message' => 'Failed to fetch students.',
-                'error'   => $e->getMessage()
+                'error' => $e->getMessage()
             ], 500);
         }
     }
@@ -201,34 +272,94 @@ class StudentStudentStudentClassService
     public function getStudentClassessDetails($student_id)
     {
         try {
-            // Fetch all students for the given class and category with ALL required relationships
+            $student_id = (int) $student_id;
+
             $students = StudentStudentStudentClass::with([
                 'student',
-                'studentClass.teacher',      // Teacher through studentClasses
-                'studentClass.subject',      // Subject through studentClasses  
-                'studentClass.grade',        // Grade through studentClasses
-                'classCategoryHasStudentClass.classCategory' // Category through classCategoryHasStudentClass
+                'studentClass.teacher',
+                'studentClass.subject',
+                'studentClass.grade',
+                'categoryFee.classCategory',
             ])
                 ->where('student_id', $student_id)
-                ->get();
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'id' => $item->id,
+                        'student_id' => $item->student_id,
+                        'student_classes_id' => $item->student_classes_id,
+                        'class_category_has_student_class_id' => $item->class_category_has_student_class_id,
 
-            // Check if no records found
+                        'status' => (bool) $item->status,
+                        'inactive_text' => $item->status ? 'active' : 'inactive',
+
+                        'is_free_card' => (bool) $item->is_free_card,
+                        'custom_fee' => $item->custom_fee,
+                        'discount_percentage' => $item->discount_percentage,
+                        'discount_type' => $item->discount_type,
+                        'default_fee' => $item->default_fee,
+                        'final_fee' => $item->final_fee,
+                        'fee_type' => $item->fee_type,
+
+                        'student' => [
+                            'id' => optional($item->student)->id,
+                            'custom_id' => optional($item->student)->custom_id,
+                            'full_name' => optional($item->student)->full_name,
+                            'initial_name' => optional($item->student)->initial_name,
+                            'guardian_mobile' => optional($item->student)->guardian_mobile,
+                            'img_url' => optional($item->student)->img_url,
+                        ],
+
+                        'student_class' => [
+                            'id' => optional($item->studentClass)->id,
+                            'class_name' => optional($item->studentClass)->class_name,
+                            'medium' => optional($item->studentClass)->medium,
+                        ],
+
+                        'teacher' => [
+                            'id' => optional(optional($item->studentClass)->teacher)->id,
+                            'teacher_name' => optional(optional($item->studentClass)->teacher)->teacher_name,
+                        ],
+
+                        'subject' => [
+                            'id' => optional(optional($item->studentClass)->subject)->id,
+                            'subject_name' => optional(optional($item->studentClass)->subject)->subject_name,
+                        ],
+
+                        'grade' => [
+                            'id' => optional(optional($item->studentClass)->grade)->id,
+                            'grade_name' => optional(optional($item->studentClass)->grade)->grade_name,
+                        ],
+
+                        'class_category_has_student_class' => [
+                            'id' => optional($item->categoryFee)->id,
+                            'fees' => optional($item->categoryFee)->fees,
+                            'class_category' => [
+                                'id' => optional(optional($item->categoryFee)->classCategory)->id,
+                                'category_name' => optional(optional($item->categoryFee)->classCategory)->category_name,
+                            ],
+                        ],
+                    ];
+                })
+                ->values();
+
             if ($students->isEmpty()) {
                 return response()->json([
                     'status' => 'empty',
-                    'message' => 'No students assigned to this class and category'
-                ]);
+                    'message' => 'No classes found for this student',
+                    'data' => []
+                ], 200);
             }
 
-            // Return the records
             return response()->json([
                 'status' => 'success',
+                'count' => $students->count(),
                 'data' => $students
-            ]);
-        } catch (Exception $e) {
+            ], 200);
+        } catch (\Throwable $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to fetch students',
+                'message' => 'Failed to fetch student classes',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -237,13 +368,14 @@ class StudentStudentStudentClassService
     public function getStudentClassessFilterDetails($student_id)
     {
         try {
-            // Fetch all students for the given class and category with ALL required relationships
+            $student_id = (int) $student_id;
+
             $students = StudentStudentStudentClass::with([
                 'student',
-                'studentClass.teacher',      // Teacher through studentClasses
-                'studentClass.subject',      // Subject through studentClasses  
-                'studentClass.grade',        // Grade through studentClasses
-                'classCategoryHasStudentClass.classCategory' // Category through classCategoryHasStudentClass
+                'studentClass.teacher',
+                'studentClass.subject',
+                'studentClass.grade',
+                'categoryFee.classCategory',
             ])
                 ->where('student_id', $student_id)
                 ->get()
@@ -253,57 +385,74 @@ class StudentStudentStudentClassService
                         'student_id' => $item->student_id,
                         'student_classes_id' => $item->student_classes_id,
                         'class_category_has_student_class_id' => $item->class_category_has_student_class_id,
-                        'status' => $item->status,
-                        'is_free_card' => $item->is_free_card,
-                        'joined_date' => $item->created_at->toDateString(),
-                        'classCategoryHasStudentClass' => [
-                            'class_fee' => $item->classCategoryHasStudentClass->fees,
+
+                        'status' => (bool) $item->status,
+                        'inactive_text' => $item->status ? 'active' : 'inactive',
+
+                        'is_free_card' => (bool) $item->is_free_card,
+                        'custom_fee' => $item->custom_fee,
+                        'discount_percentage' => $item->discount_percentage,
+                        'discount_type' => $item->discount_type,
+                        'default_fee' => $item->default_fee,
+                        'final_fee' => $item->final_fee,
+                        'fee_type' => $item->fee_type,
+
+                        'joined_date' => optional($item->created_at)->toDateString(),
+
+                        'class_category_has_student_class' => [
+                            'id' => optional($item->categoryFee)->id,
+                            'class_fee' => optional($item->categoryFee)->fees,
                         ],
+
                         'student' => [
-                            'student_custom_id' => $item->student->custom_id,
-                            'first_name' => $item->student->full_name,
-                            'last_name' => $item->student->initial_name,
-                            'img_url' => $item->student->img_url,
-                            'guardian_mobile' => $item->student->guardian_mobile,
-                            'student_status' => $item->student->is_active,
+                            'student_custom_id' => optional($item->student)->custom_id,
+                            'first_name' => optional($item->student)->full_name,
+                            'last_name' => optional($item->student)->initial_name,
+                            'img_url' => optional($item->student)->img_url,
+                            'guardian_mobile' => optional($item->student)->guardian_mobile,
+                            'student_status' => optional($item->student)->is_active,
                         ],
+
                         'student_class' => [
-                            'class_name' => $item->studentClass->class_name,
+                            'class_name' => optional($item->studentClass)->class_name,
                             'teacher' => [
-                                'teacher_id' => $item->studentClass->teacher->id,
-                                'first_name' => $item->studentClass->teacher->fname,
-                                'last_name' => $item->studentClass->teacher->lname
+                                'teacher_id' => optional(optional($item->studentClass)->teacher)->id,
+                                'first_name' => optional(optional($item->studentClass)->teacher)->fname,
+                                'last_name' => optional(optional($item->studentClass)->teacher)->lname,
                             ],
                             'subject' => [
-                                'subject_name' => $item->studentClass->subject->subject_name,
+                                'subject_name' => optional(optional($item->studentClass)->subject)->subject_name,
                             ],
                             'grade' => [
-                                'grade_name' => $item->studentClass->grade->grade_name,
+                                'grade_name' => optional(optional($item->studentClass)->grade)->grade_name,
                             ],
                         ],
+
                         'class_category' => [
-                            'category_name' => $item->classCategoryHasStudentClass->classCategory->category_name,
+                            'id' => optional(optional($item->categoryFee)->classCategory)->id,
+                            'category_name' => optional(optional($item->categoryFee)->classCategory)->category_name,
                         ],
                     ];
-                });
+                })
+                ->values();
 
-            // Check if no records found
             if ($students->isEmpty()) {
                 return response()->json([
                     'status' => 'empty',
-                    'message' => 'No students assigned to this class and category'
-                ]);
+                    'message' => 'No classes found for this student',
+                    'data' => []
+                ], 200);
             }
 
-            // Return the records
             return response()->json([
                 'status' => 'success',
+                'count' => $students->count(),
                 'data' => $students
-            ]);
-        } catch (Exception $e) {
+            ], 200);
+        } catch (\Throwable $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to fetch students',
+                'message' => 'Failed to fetch student classes',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -314,54 +463,125 @@ class StudentStudentStudentClassService
         try {
             DB::beginTransaction();
 
-            // Validation
+            // ✅ Validation
             $validated = $request->validate([
                 'students' => 'required|array|min:1',
                 'students.*.student_id' => 'required|integer|exists:students,id',
+                'students.*.status' => 'nullable|boolean',
+                'students.*.is_free_card' => 'nullable|boolean',
+                'students.*.custom_fee' => 'nullable|numeric|min:0',
+                'students.*.discount_percentage' => 'nullable|numeric|min:0|max:100',
+                'students.*.discount_type' => 'nullable|string|max:255',
+
                 'student_classes_id' => 'required|integer|exists:student_classes,id',
                 'class_category_has_student_class_id' => 'required|integer|exists:class_category_has_student_class,id',
             ]);
 
-            $studentClassID = $validated['student_classes_id'];
-            $categoryID = $validated['class_category_has_student_class_id'];
+            $studentClassID = (int) $validated['student_classes_id'];
+            $categoryID = (int) $validated['class_category_has_student_class_id'];
+
+            // ✅ Ensure category belongs to class
+            $categoryLink = ClassCategoryHasStudentClass::findOrFail($categoryID);
+
+            if ((int)$categoryLink->student_classes_id !== $studentClassID) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Selected category does not belong to the selected class.'
+                ], 422);
+            }
+
+            // ✅ Get existing records in one query (performance)
+            $studentIds = collect($validated['students'])->pluck('student_id');
+
+            $existing = StudentStudentStudentClass::where('student_classes_id', $studentClassID)
+                ->where('class_category_has_student_class_id', $categoryID)
+                ->whereIn('student_id', $studentIds)
+                ->get()
+                ->keyBy('student_id');
 
             $created = [];
             $skipped = [];
 
             foreach ($validated['students'] as $studentData) {
 
-                // 🔍 Check if record already exists
-                $existingRecord = StudentStudentStudentClass::where([
-                    'student_id' => $studentData['student_id'],
-                    'student_classes_id' => $studentClassID,
-                    'class_category_has_student_class_id' => $categoryID,
-                ])->first();
+                $studentId = (int) $studentData['student_id'];
+                $status = array_key_exists('status', $studentData) ? (bool)$studentData['status'] : true;
+                $isFreeCard = (bool)($studentData['is_free_card'] ?? false);
+                $customFee = $studentData['custom_fee'] ?? null;
+                $discountPercentage = $studentData['discount_percentage'] ?? null;
+                $discountType = $studentData['discount_type'] ?? null;
 
-                if ($existingRecord) {
-                    $message = $existingRecord->status == 0
-                        ? "duplicate entry — class inactive"
-                        : "duplicate entry";
+                // ✅ Duplicate check (in-memory)
+                if (isset($existing[$studentId])) {
+                    $existingRecord = $existing[$studentId];
 
                     $skipped[] = [
-                        'student_id' => $studentData['student_id'],
-                        'message' => $message
+                        'student_id' => $studentId,
+                        'message' => $existingRecord->status
+                            ? 'duplicate entry'
+                            : 'duplicate entry — class inactive'
                     ];
                     continue;
                 }
 
-                // 🟢 Create new record
-                $record = StudentStudentStudentClass::create([
-                    'student_id' => $studentData['student_id'],
-                    'student_classes_id' => $studentClassID,
-                    'class_category_has_student_class_id' => $categoryID,
-                    'status' => $studentData['status'] ?? 1, // default active
-                    'is_free_card' => $studentData['is_free_card'] ?? false,
-                ]);
+                // ✅ Business rules
 
-                // Mark active/inactive text
-                $record->inactive_text = $record->status == 0 ? "inactive" : "active";
+                // Free card override
+                if ($isFreeCard) {
+                    $customFee = null;
+                    $discountPercentage = null;
+                    $discountType = $discountType ?: 'free_card';
+                }
 
-                $created[] = $record;
+                // Cannot have both
+                if (!$isFreeCard && !is_null($customFee) && !is_null($discountPercentage)) {
+                    $skipped[] = [
+                        'student_id' => $studentId,
+                        'message' => 'custom_fee and discount_percentage cannot both be set'
+                    ];
+                    continue;
+                }
+
+                // Auto detect half card
+                if (!$isFreeCard && is_null($customFee) && !is_null($discountPercentage)) {
+                    if ((float)$discountPercentage === 50.0 && is_null($discountType)) {
+                        $discountType = 'half_card';
+                    }
+                }
+
+                try {
+                    $record = StudentStudentStudentClass::create([
+                        'student_id' => $studentId,
+                        'student_classes_id' => $studentClassID,
+                        'class_category_has_student_class_id' => $categoryID,
+                        'status' => $status,
+                        'is_free_card' => $isFreeCard,
+                        'custom_fee' => $customFee,
+                        'discount_percentage' => $discountPercentage,
+                        'discount_type' => $discountType,
+                    ]);
+
+                    $created[] = [
+                        'id' => $record->id,
+                        'student_id' => $record->student_id,
+                        'status' => $record->status,
+                        'is_free_card' => $record->is_free_card,
+                        'final_fee' => $record->final_fee,
+                        'fee_type' => $record->fee_type,
+                    ];
+                } catch (\Illuminate\Database\QueryException $e) {
+
+                    // ✅ Handle race condition (duplicate from DB unique key)
+                    if ($e->getCode() === '23000') {
+                        $skipped[] = [
+                            'student_id' => $studentId,
+                            'message' => 'duplicate (DB constraint)'
+                        ];
+                        continue;
+                    }
+
+                    throw $e;
+                }
             }
 
             DB::commit();
@@ -370,16 +590,17 @@ class StudentStudentStudentClassService
                 'status' => 'success',
                 'message' => 'Bulk records processed',
                 'created_count' => count($created),
+                'skipped_count' => count($skipped),
+                'created' => $created,
                 'skipped' => $skipped,
-                'created_records' => $created
             ], 200);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
 
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to save bulk records',
-                'error' => $e->getMessage()
+                'message' => 'Failed to process bulk records',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -387,20 +608,69 @@ class StudentStudentStudentClassService
     public function storeSingleStudentClass(Request $request)
     {
         try {
+            DB::beginTransaction();
+
             // Validation
             $validated = $request->validate([
                 'student_id' => 'required|integer|exists:students,id',
                 'student_classes_id' => 'required|integer|exists:student_classes,id',
                 'class_category_has_student_class_id' => 'required|integer|exists:class_category_has_student_class,id',
-                'status' => 'nullable|integer|in:0,1',
+                'status' => 'nullable|boolean',
                 'is_free_card' => 'nullable|boolean',
+                'custom_fee' => 'nullable|numeric|min:0',
+                'discount_percentage' => 'nullable|numeric|min:0|max:100',
+                'discount_type' => 'nullable|string|max:255',
             ]);
 
-            $studentId = $validated['student_id'];
-            $studentClassID = $validated['student_classes_id'];
-            $categoryID = $validated['class_category_has_student_class_id'];
+            $studentId = (int) $validated['student_id'];
+            $studentClassID = (int) $validated['student_classes_id'];
+            $categoryID = (int) $validated['class_category_has_student_class_id'];
 
-            // 🔍 Check if record already exists
+            $status = array_key_exists('status', $validated) ? (bool) $validated['status'] : true;
+            $isFreeCard = (bool) ($validated['is_free_card'] ?? false);
+            $customFee = $validated['custom_fee'] ?? null;
+            $discountPercentage = $validated['discount_percentage'] ?? null;
+            $discountType = $validated['discount_type'] ?? null;
+
+            // Ensure category belongs to selected class
+            $categoryLink = ClassCategoryHasStudentClass::findOrFail($categoryID);
+
+            if ((int) $categoryLink->student_classes_id !== $studentClassID) {
+                DB::rollBack();
+
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Selected category does not belong to the selected class.'
+                ], 422);
+            }
+
+            // Business rules
+            if ($isFreeCard) {
+                $customFee = null;
+                $discountPercentage = null;
+                $discountType = $discountType ?: 'free_card';
+            }
+
+            if (!$isFreeCard && !is_null($customFee) && !is_null($discountPercentage)) {
+                DB::rollBack();
+
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'custom_fee and discount_percentage cannot both be set.'
+                ], 422);
+            }
+
+            if (
+                !$isFreeCard &&
+                is_null($customFee) &&
+                !is_null($discountPercentage) &&
+                is_null($discountType) &&
+                (float) $discountPercentage === 50.0
+            ) {
+                $discountType = 'half_card';
+            }
+
+            // Check duplicate
             $existingRecord = StudentStudentStudentClass::where([
                 'student_id' => $studentId,
                 'student_classes_id' => $studentClassID,
@@ -408,35 +678,52 @@ class StudentStudentStudentClassService
             ])->first();
 
             if ($existingRecord) {
-                $message = $existingRecord->status == 0
-                    ? "duplicate entry — class inactive"
-                    : "duplicate entry";
+                DB::rollBack();
+
+                $message = $existingRecord->status
+                    ? 'duplicate entry'
+                    : 'duplicate entry — class inactive';
 
                 return response()->json([
                     'status' => 'error',
                     'message' => $message,
-                    'existing_record' => $existingRecord
                 ], 409);
             }
 
-            // 🟢 Create new record
-            $record = StudentStudentStudentClass::create([
-                'student_id' => $studentId,
-                'student_classes_id' => $studentClassID,
-                'class_category_has_student_class_id' => $categoryID,
-                'status' => $validated['status'] ?? 1, // default active
-                'is_free_card' => $validated['is_free_card'] ?? false,
-            ]);
+            try {
+                $record = StudentStudentStudentClass::create([
+                    'student_id' => $studentId,
+                    'student_classes_id' => $studentClassID,
+                    'class_category_has_student_class_id' => $categoryID,
+                    'status' => $status,
+                    'is_free_card' => $isFreeCard,
+                    'custom_fee' => $customFee,
+                    'discount_percentage' => $discountPercentage,
+                    'discount_type' => $discountType,
+                ]);
+            } catch (\Illuminate\Database\QueryException $e) {
+                // DB unique constraint race condition
+                if ($e->getCode() === '23000') {
+                    DB::rollBack();
 
-            // Add active/inactive text for response
-            $record->inactive_text = $record->status == 0 ? "inactive" : "active";
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'duplicate entry (DB constraint)'
+                    ], 409);
+                }
+
+                throw $e;
+            }
+
+            DB::commit();
 
             return response()->json([
                 'status' => 'success',
                 'message' => 'Record created successfully',
-                'record' => $record
-            ], 200);
-        } catch (Exception $e) {
+            ], 201);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to save record',

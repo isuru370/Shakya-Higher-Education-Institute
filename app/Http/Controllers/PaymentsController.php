@@ -55,6 +55,10 @@ class PaymentsController extends Controller
     {
         return $this->paymentService->storePayment($request);
     }
+    public function storeBulkPayments(Request $request)
+    {
+        return $this->paymentService->storeBulkPayments($request);
+    }
 
 
     /*

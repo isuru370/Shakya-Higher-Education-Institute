@@ -5,7 +5,7 @@ namespace App\Services;
 use App\Models\ClassAttendance;
 use App\Models\Payments;
 use App\Models\Student;
-use App\Models\StudentAttendances;
+use App\Models\StudentAttendance;
 use App\Models\StudentStudentStudentClass;
 use Carbon\Carbon;
 use Exception;
@@ -1034,20 +1034,19 @@ class StudentService
         if ($attendanceIds->count() === 0) {
             return [
                 'present_count' => 0,
-                'absent_count'  => $totalSessions
+                'absent_count'  => $totalSessions,
             ];
         }
 
-        $records = StudentAttendances::whereIn('attendance_id', $attendanceIds)
+        $present = StudentAttendance::whereIn('attendance_id', $attendanceIds)
             ->where('student_id', $student_id)
-            ->get();
+            ->count();
 
-        $present = $records->count();
         $absent = max(0, $totalSessions - $present);
 
         return [
             'present_count' => $present,
-            'absent_count'  => $absent
+            'absent_count'  => $absent,
         ];
     }
 
