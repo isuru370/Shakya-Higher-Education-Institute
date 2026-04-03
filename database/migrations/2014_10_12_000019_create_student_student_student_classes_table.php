@@ -1,5 +1,4 @@
 <?php
-// database/migrations/xxxx_xx_xx_000015_create_student_student_student_classes_table.php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -12,25 +11,45 @@ class CreateStudentStudentStudentClassesTable extends Migration
         Schema::create('student_student_student_classes', function (Blueprint $table) {
             $table->bigIncrements('id');
 
-            // Changed to foreignId with constraints
+            // Student
             $table->foreignId('student_id')
-                ->constrained('students');
+                ->constrained('students')
+                ->cascadeOnDelete();
 
+            // Class
             $table->foreignId('student_classes_id')
-                ->constrained('student_classes');
+                ->constrained('student_classes')
+                ->cascadeOnDelete();
 
-            $table->unsignedBigInteger('class_category_has_student_class_id');
+            // Class + Category + Default Fee link
+            $table->foreignId('class_category_has_student_class_id')
+                ->constrained('class_category_has_student_class')
+                ->cascadeOnDelete();
 
-            $table->foreign(
-                'class_category_has_student_class_id',
-                'fk_cc_hs_class'
-            )->references('id')
-                ->on('class_category_has_student_class');
+            // Active / inactive enrollment
+            $table->boolean('status')->default(true);
 
-
-            $table->boolean('status');
+            // Free card (100% free)
             $table->boolean('is_free_card')->default(false);
+
+            // 🔥 NEW: Custom fee (scholarship etc.)
+            $table->decimal('custom_fee', 10, 2)->nullable();
+
+            // 🔥 NEW: Discount percentage (half card = 50)
+            $table->decimal('discount_percentage', 5, 2)->nullable();
+
+            // 🔥 NEW: Reason / type (optional but useful)
+            $table->string('discount_type')->nullable();
+            // examples: scholarship, half_card, staff_child
+
             $table->timestamps();
+
+            // ❗ Prevent duplicate same student same class same category
+            $table->unique([
+                'student_id',
+                'student_classes_id',
+                'class_category_has_student_class_id'
+            ], 'unique_student_class_category');
         });
     }
 

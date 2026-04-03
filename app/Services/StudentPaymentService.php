@@ -391,6 +391,105 @@ class StudentPaymentService
         }
     }
 
+    public function storeBulkPayments(Request $request)
+    {
+        $validated = $request->validate([
+            'payments' => 'required|array|min:1',
+            'payments.*.payment_date' => 'required|date',
+            'payments.*.status' => 'required|integer|in:0,1',
+            'payments.*.amount' => 'required|numeric',
+            'payments.*.student_id' => 'required|integer',
+            'payments.*.student_student_student_classes_id' => 'required|integer',
+            'payments.*.payment_for' => 'required|string|max:20',
+            'payments.*.guardian_mobile' => 'required|string',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $paymentsToInsert = [];
+            $smsData = [];
+
+            foreach ($validated['payments'] as $index => $paymentData) {
+
+                // Duplicate check only for active payments
+                if ($paymentData['status'] == 1) {
+                    $existingPayment = Payments::where('payment_for', $paymentData['payment_for'])
+                        ->where('student_id', $paymentData['student_id'])
+                        ->where('student_student_student_classes_id', $paymentData['student_student_student_classes_id'])
+                        ->where('status', 1)
+                        ->first();
+
+                    if ($existingPayment) {
+                        DB::rollBack();
+                        return response()->json([
+                            'status' => 'error',
+                            'message' => 'Duplicate payment found',
+                            'details' => "Payment #" . ($index + 1) . " already exists for student ID {$paymentData['student_id']} and class ID {$paymentData['student_student_student_classes_id']} for {$paymentData['payment_for']}"
+                        ], 422);
+                    }
+                }
+
+                $paymentsToInsert[] = [
+                    'payment_date' => $paymentData['payment_date'],
+                    'status' => $paymentData['status'],
+                    'amount' => $paymentData['amount'],
+                    'student_id' => $paymentData['student_id'],
+                    'student_student_student_classes_id' => $paymentData['student_student_student_classes_id'],
+                    'payment_for' => $paymentData['payment_for'],
+                    'user_id' => auth()->id(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+
+                // SMS data collect karaganna
+                if ($paymentData['status'] == 1) {
+                    $childInfo = StudentStudentStudentClass::with([
+                        'student',
+                        'studentClass',
+                        'classCategoryHasStudentClass.classCategory'
+                    ])->where('id', $paymentData['student_student_student_classes_id'])->first();
+
+                    if ($childInfo) {
+                        $smsData[] = [
+                            'guardian_mobile' => $paymentData['guardian_mobile'],
+                            'amount' => $paymentData['amount'],
+                            'payment_for' => $paymentData['payment_for'],
+                            'child_name' => $childInfo->student->initial_name ?? '',
+                            'class_name' => $childInfo->studentClass->class_name ?? '',
+                            'category_name' => optional($childInfo->classCategoryHasStudentClass->classCategory)->category_name ?? '',
+                        ];
+                    }
+                }
+            }
+
+            // Bulk insert
+            Payments::insert($paymentsToInsert);
+
+            DB::commit();
+
+            // SMS queue dispatch after commit
+            foreach ($smsData as $sms) {
+                $message = "Payment received for {$sms['child_name']} ({$sms['class_name']} - {$sms['category_name']}): LKR {$sms['amount']} for {$sms['payment_for']}. Thank you.";
+                SendPaymentSms::dispatch($sms['guardian_mobile'], $message)->onQueue('sms');
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Bulk payments stored successfully',
+                'count' => count($paymentsToInsert),
+            ], 200);
+        } catch (Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to store bulk payments',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     // Edit payment amount
     public function updatePayment(Request $request, $id)
     {
