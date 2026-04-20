@@ -7,31 +7,34 @@
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 15px;
+            font-size: 11px;
         }
         
         .header {
             text-align: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
             border-bottom: 2px solid #333;
         }
         
         .header h1 {
             margin: 0;
             color: #2c3e50;
+            font-size: 18px;
         }
         
         .header p {
-            margin: 5px 0;
+            margin: 3px 0;
             color: #7f8c8d;
+            font-size: 10px;
         }
         
         .summary {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 30px;
-            padding: 15px;
+            margin-bottom: 20px;
+            padding: 10px;
             background-color: #f8f9fa;
             border-radius: 5px;
         }
@@ -42,13 +45,13 @@
         }
         
         .summary-item .label {
-            font-size: 12px;
+            font-size: 10px;
             color: #6c757d;
-            margin-bottom: 5px;
+            margin-bottom: 3px;
         }
         
         .summary-item .value {
-            font-size: 20px;
+            font-size: 16px;
             font-weight: bold;
             color: #2c3e50;
         }
@@ -56,12 +59,13 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            margin-top: 15px;
+            font-size: 10px;
         }
         
         th, td {
             border: 1px solid #ddd;
-            padding: 10px;
+            padding: 6px 8px;
             text-align: left;
         }
         
@@ -69,6 +73,7 @@
             background-color: #34495e;
             color: white;
             font-weight: bold;
+            font-size: 10px;
         }
         
         tr:nth-child(even) {
@@ -76,11 +81,11 @@
         }
         
         .footer {
-            margin-top: 30px;
+            margin-top: 20px;
             text-align: center;
-            padding-top: 20px;
+            padding-top: 15px;
             border-top: 1px solid #ddd;
-            font-size: 10px;
+            font-size: 9px;
             color: #7f8c8d;
         }
         
@@ -91,8 +96,8 @@
         
         .badge {
             display: inline-block;
-            padding: 2px 6px;
-            font-size: 11px;
+            padding: 2px 5px;
+            font-size: 9px;
             border-radius: 3px;
         }
         
@@ -115,6 +120,35 @@
             background-color: #95a5a6;
             color: white;
         }
+        
+        .qr-code {
+            font-family: monospace;
+            font-size: 9px;
+            background-color: #f8f9fa;
+            padding: 3px 5px;
+            border-radius: 3px;
+            letter-spacing: 0.5px;
+        }
+        
+        .student-initial {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 10px;
+        }
+        
+        @media print {
+            body {
+                padding: 10px;
+            }
+            .badge {
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+            th {
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+        }
     </style>
 </head>
 <body>
@@ -131,11 +165,11 @@
         </div>
         <div class="summary-item">
             <div class="label">Total Amount</div>
-            <div class="value">${{ number_format($totalAmount, 2) }}</div>
+            <div class="value">LKR {{ number_format($totalAmount, 2) }}</div>
         </div>
         <div class="summary-item">
             <div class="label">Average Payment</div>
-            <div class="value">${{ $totalPayments > 0 ? number_format($totalAmount / $totalPayments, 2) : '0.00' }}</div>
+            <div class="value">LKR {{ $totalPayments > 0 ? number_format($totalAmount / $totalPayments, 2) : '0.00' }}</div>
         </div>
     </div>
     
@@ -144,7 +178,7 @@
             <thead>
                 <tr>
                     <th>#</th>
-                    <th>Payment ID</th>
+                    <th>QR Code</th>
                     <th>Student Name</th>
                     <th>Class</th>
                     <th>Grade</th>
@@ -152,15 +186,23 @@
                     <th>Teacher</th>
                     <th>Payment For</th>
                     <th>Fee Type</th>
-                    <th class="amount">Amount ($)</th>
+                    <th class="amount">Amount (LKR)</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach($result as $index => $payment)
                     <tr>
                         <td>{{ $index + 1 }}</td>
-                        <td>{{ $payment->payment_id }}</td>
-                        <td>{{ $payment->student_name }}</td>
+                        <td>
+                            @if($payment->qr_code)
+                                <span class="qr-code">{{ $payment->qr_code }}</span>
+                            @else
+                                <span style="color: #999;">N/A</span>
+                            @endif
+                        </td>
+                        <td>
+                            <span class="student-initial">{{ $payment->student_initial_name ?: 'N/A' }}</span>
+                        </td>
                         <td>{{ $payment->class_name }}</td>
                         <td>{{ $payment->grade_name }}</td>
                         <td>{{ $payment->subject_name }}</td>
@@ -175,14 +217,14 @@
                             @endphp
                             <span class="badge {{ $badgeClass }}">{{ $payment->fee_type }}</span>
                         </td>
-                        <td class="amount">${{ number_format($payment->amount, 2) }}</td>
+                        <td class="amount">LKR {{ number_format($payment->amount, 2) }}</td>
                     </tr>
                 @endforeach
             </tbody>
             <tfoot>
                 <tr style="background-color: #f8f9fa; font-weight: bold;">
                     <td colspan="9" style="text-align: right;">Total:</td>
-                    <td class="amount">${{ number_format($totalAmount, 2) }}</td>
+                    <td class="amount">LKR {{ number_format($totalAmount, 2) }}</td>
                 </tr>
             </tfoot>
         </table>
