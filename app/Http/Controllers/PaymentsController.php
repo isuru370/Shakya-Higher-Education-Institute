@@ -51,6 +51,12 @@ class PaymentsController extends Controller
         return $this->paymentService->getTeacherPayments($request);
     }
 
+     public function downloadTodayPaymentsPDF()
+    {
+        return $this->paymentService->downloadTodayPaymentsPDF();
+    }
+
+
     public function storePayment(Request $request)
     {
         return $this->paymentService->storePayment($request);

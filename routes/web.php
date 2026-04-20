@@ -207,6 +207,7 @@ Route::middleware(['auth', 'check.permission'])->group(function () {
             ->name('index');
         Route::get('/create', [PaymentsController::class, 'createPage'])
             ->name('create');
+        Route::get('/today/pdf', [PaymentsController::class, 'downloadTodayPaymentsPDF']);
         Route::get('/details/{student_id}/{student_class_id}', [PaymentsController::class, 'detailsPage'])
             ->name('details');
     });
