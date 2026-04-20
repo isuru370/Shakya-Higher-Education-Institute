@@ -276,13 +276,20 @@ class StudentPaymentService
                     $feeType = 'Normal';
                 }
 
+                // Get QR code (either permanent or temporary)
+                $qrCode = optional($payment->student)->permanent_qr_active
+                    ? optional($payment->student)->custom_id
+                    : optional($payment->student)->temporary_qr_code;
+
                 return (object) [
                     'payment_id' => $payment->id,
                     'student_id' => $payment->student_id,
                     'amount' => $payment->amount,
                     'payment_date' => $payment->payment_date,
                     'payment_for_month' => $payment->payment_for,
-                    'student_name' => optional($payment->student)->full_name ?? 'N/A',
+                    'qr_code' => $qrCode,
+                    'student_initial_name' => optional($payment->student)->initial_name ?? 'N/A',
+                    'student_full_name' => optional($payment->student)->full_name ?? 'N/A',
                     'guardian_mobile' => optional($payment->student)->guardian_mobile ?? 'N/A',
                     'class_name' => optional($studentClass)->class_name ?? 'N/A',
                     'teacher_name' => $teacher ? trim(($teacher->fname ?? '') . ' ' . ($teacher->lname ?? '')) : 'N/A',
@@ -299,7 +306,7 @@ class StudentPaymentService
             $date = $today->format('Y-m-d');
             $formattedDate = $today->format('F j, Y');
 
-            // Generate PDF using DomPDF (requires barryvdh/laravel-dompdf)
+            // Generate PDF using DomPDF
             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.today-payments', compact(
                 'result',
                 'totalAmount',
@@ -307,6 +314,9 @@ class StudentPaymentService
                 'date',
                 'formattedDate'
             ));
+
+            // Set paper size and orientation
+            $pdf->setPaper('A4', 'landscape');
 
             // Download the PDF
             return $pdf->download("today_payments_{$date}.pdf");
