@@ -232,6 +232,93 @@ class StudentPaymentService
     }
 
 
+    // Add this new method for PDF download
+    public function downloadTodayPaymentsPDF()
+    {
+        try {
+            $today = Carbon::today();
+
+            $payments = Payments::with([
+                'student',
+                'studentStudentClass.classCategoryHasStudentClass.classCategory',
+                'studentStudentClass.studentClass.teacher',
+                'studentStudentClass.studentClass.grade',
+                'studentStudentClass.studentClass.subject',
+            ])
+                ->where('status', 1)
+                ->whereDate('payment_date', $today)
+                ->orderBy('payment_date', 'desc')
+                ->get();
+
+            // Prepare data for PDF
+            $result = $payments->map(function ($payment) {
+                $studentClassModel = $payment->studentStudentClass;
+                $studentClass = optional($studentClassModel)->studentClass;
+                $teacher = optional($studentClass)->teacher;
+                $grade = optional($studentClass)->grade;
+                $subject = optional($studentClass)->subject;
+                $classCategoryHasStudentClass = optional($studentClassModel)->classCategoryHasStudentClass;
+                $classCategory = optional($classCategoryHasStudentClass)->classCategory;
+
+                $defaultFee = optional($classCategoryHasStudentClass)->fees ?? 0;
+
+                if ($studentClassModel && $studentClassModel->is_free_card) {
+                    $finalFee = 0;
+                    $feeType = 'Free Card';
+                } elseif ($studentClassModel && !is_null($studentClassModel->custom_fee)) {
+                    $finalFee = $studentClassModel->custom_fee;
+                    $feeType = 'Custom Fee';
+                } elseif ($studentClassModel && !is_null($studentClassModel->discount_percentage)) {
+                    $finalFee = $defaultFee * (1 - ($studentClassModel->discount_percentage / 100));
+                    $feeType = $studentClassModel->discount_percentage . '% Discount';
+                } else {
+                    $finalFee = $defaultFee;
+                    $feeType = 'Normal';
+                }
+
+                return (object) [
+                    'payment_id' => $payment->id,
+                    'student_id' => $payment->student_id,
+                    'amount' => $payment->amount,
+                    'payment_date' => $payment->payment_date,
+                    'payment_for_month' => $payment->payment_for,
+                    'student_name' => optional($payment->student)->full_name ?? 'N/A',
+                    'guardian_mobile' => optional($payment->student)->guardian_mobile ?? 'N/A',
+                    'class_name' => optional($studentClass)->class_name ?? 'N/A',
+                    'teacher_name' => $teacher ? trim(($teacher->fname ?? '') . ' ' . ($teacher->lname ?? '')) : 'N/A',
+                    'grade_name' => optional($grade)->grade_name ?? 'N/A',
+                    'subject_name' => optional($subject)->subject_name ?? 'N/A',
+                    'category_name' => optional($classCategory)->category_name ?? 'N/A',
+                    'final_fee' => round($finalFee, 2),
+                    'fee_type' => $feeType,
+                ];
+            });
+
+            $totalAmount = $payments->sum('amount');
+            $totalPayments = $payments->count();
+            $date = $today->format('Y-m-d');
+            $formattedDate = $today->format('F j, Y');
+
+            // Generate PDF using DomPDF (requires barryvdh/laravel-dompdf)
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.today-payments', compact(
+                'result',
+                'totalAmount',
+                'totalPayments',
+                'date',
+                'formattedDate'
+            ));
+
+            // Download the PDF
+            return $pdf->download("today_payments_{$date}.pdf");
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to generate PDF',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
 
     private function formatPaymentsForMonthlyView($payments)
     {
