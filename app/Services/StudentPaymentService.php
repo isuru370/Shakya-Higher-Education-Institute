@@ -65,20 +65,24 @@ class StudentPaymentService
             $qrCode = trim($request->qr_code);
             $now = Carbon::now();
 
-            // 1. Determine temporary or permanent QR
-            if (str_starts_with($qrCode, 'TMP')) {
-                $student = Student::where('temporary_qr_code', $qrCode)
-                    ->where('student_disable', false)
-                    ->first();
+            // 🔥 NEW: TMP + SA දෙකම එකට search කරනවා
+            $student = Student::where('student_disable', false)
+                ->where(function ($query) use ($qrCode) {
+                    $query->where('temporary_qr_code', $qrCode)
+                        ->orWhere('custom_id', $qrCode);
+                })
+                ->first();
 
-                if (!$student) {
-                    return response()->json([
-                        'status' => 'error',
-                        'message' => 'Temporary QR code invalid',
-                        'data' => []
-                    ], 404);
-                }
+            if (!$student) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'QR code invalid',
+                    'data' => []
+                ], 404);
+            }
 
+            // ✅ TMP QR නම් expire check විතරයි
+            if ($student->temporary_qr_code === $qrCode) {
                 if (
                     $student->temporary_qr_code_expire_date &&
                     $now->gt($student->temporary_qr_code_expire_date)
@@ -89,29 +93,9 @@ class StudentPaymentService
                         'data' => []
                     ], 403);
                 }
-            } else {
-                $student = Student::where('custom_id', $qrCode)
-                    ->where('student_disable', false)
-                    ->first();
-
-                if (!$student) {
-                    return response()->json([
-                        'status' => 'error',
-                        'message' => 'QR code invalid',
-                        'data' => []
-                    ], 404);
-                }
-
-                if (!$student->permanent_qr_active) {
-                    return response()->json([
-                        'status' => 'error',
-                        'message' => 'Permanent QR code inactive',
-                        'data' => []
-                    ], 403);
-                }
             }
 
-            // 2. Check student active
+            // ✅ student active check
             if ((int) $student->is_active === 0) {
                 return response()->json([
                     'status' => 'error',
