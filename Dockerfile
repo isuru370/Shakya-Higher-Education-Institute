@@ -17,8 +17,17 @@ RUN echo "RemoteIPHeader X-Forwarded-For" >> /etc/apache2/apache2.conf && \
 RUN apt-get update && apt-get install -y \
     git unzip zip curl libzip-dev libonig-dev libpng-dev \
     libxml2-dev libicu-dev libjpeg-dev libfreetype6-dev build-essential \
+    default-mysql-client \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo pdo_mysql mbstring bcmath gd zip intl \
+    && docker-php-ext-install \
+        pdo \
+        pdo_mysql \
+        mbstring \
+        bcmath \
+        gd \
+        zip \
+        intl \
+        exif \
     && rm -rf /var/lib/apt/lists/*
 
 # ----------------------------

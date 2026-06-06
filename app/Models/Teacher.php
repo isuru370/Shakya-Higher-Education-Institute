@@ -3,19 +3,16 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Teacher extends Model
 {
-    use HasFactory;
-
-    // Specify the correct table name
-    protected $table = 'teachers';
+    use SoftDeletes;
 
     protected $fillable = [
         'custom_id',
-        'fname',
-        'lname',
+        'full_name',
+        'initials',
         'email',
         'mobile',
         'nic',
@@ -31,16 +28,28 @@ class Teacher extends Model
         'bank_branch_id',
     ];
 
-    // Type casting for JSON responses
     protected $casts = [
-        'is_active'     => 'boolean',
-        'bank_branch_id'=> 'integer',
-        'created_at'    => 'datetime',
-        'updated_at'    => 'datetime',
+        'bday' => 'date',
+        'is_active' => 'boolean',
     ];
 
     public function bankBranch()
     {
         return $this->belongsTo(BankBranch::class);
     }
+
+    public function classes()
+    {
+        return $this->hasMany(StudentClass::class);
+    }
+
+    public function schedules()
+    {
+        return $this->hasManyThrough(
+            ClassSchedule::class,
+            StudentClass::class
+        );
+    }
+
+    
 }

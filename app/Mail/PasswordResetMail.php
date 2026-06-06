@@ -10,10 +10,10 @@ class PasswordResetMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public $otp;
-    public $userName;
+    public string $otp;
+    public ?string $userName;
 
-    public function __construct($otp, $userName = null)
+    public function __construct(string $otp, ?string $userName = null)
     {
         $this->otp = $otp;
         $this->userName = $userName;

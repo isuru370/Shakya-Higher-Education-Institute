@@ -48,16 +48,4 @@ class ClassAttendance extends Model
         return $this->id;
     }
 
-    public function classCategoryStudentClass()
-    {
-        return $this->belongsTo(
-            ClassCategoryHasStudentClass::class,
-            'class_category_has_student_class_id'
-        );
-    }
-
-    public function hall()
-    {
-        return $this->belongsTo(ClassHalls::class, 'class_hall_id');
-    }
 }

@@ -2,67 +2,65 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Exam extends Model
 {
-    use HasFactory;
-
-    protected $table = 'exams';
+    use SoftDeletes;
 
     protected $fillable = [
         'title',
-        'date',
+        'student_class_id',
+        'class_category_id',
+        'class_hall_id',
+        'exam_date',
         'start_time',
         'end_time',
-        'class_category_has_student_class_id',
-        'class_hall_id',
-        'is_canceled',
+        'status',
+        'cancel_reason',
+        'cancelled_by',
+        'cancelled_at',
+        'note',
     ];
 
     protected $casts = [
-        'class_category_has_student_class_id' => 'integer',
-        'class_hall_id' => 'integer',
-        'is_canceled' => 'boolean',
-        'date' => 'date:Y-m-d',
-        'start_time' => 'datetime:H:i',
-        'end_time'   => 'datetime:H:i',
-        'created_at' => 'datetime:Y-m-d H:i:s',
-        'updated_at' => 'datetime:Y-m-d H:i:s',
+        'exam_date' => 'date',
+        'cancelled_at' => 'datetime',
     ];
 
-    protected $appends = ['duration'];
-
-    public function classCategoryHasStudentClass()
+    public function studentClass()
     {
-        return $this->belongsTo(ClassCategoryHasStudentClass::class, 'class_category_has_student_class_id');
+        return $this->belongsTo(StudentClass::class);
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(ClassCategory::class, 'class_category_id');
     }
 
     public function hall()
     {
-        return $this->belongsTo(ClassHalls::class, 'class_hall_id');
+        return $this->belongsTo(ClassHall::class, 'class_hall_id');
     }
 
-    public function scopeActive($query)
+    public function cancelledBy()
     {
-        return $query->where('is_canceled', false);
+        return $this->belongsTo(User::class, 'cancelled_by');
     }
 
-    public function getDurationAttribute()
+    public function results()
     {
-        if ($this->start_time && $this->end_time) {
-            return round(
-                $this->start_time->diffInMinutes($this->end_time) / 60,
-                2
-            );
-        }
-
-        return null;
+        return $this->hasMany(StudentResult::class);
     }
 
-    public function studentResults()
+    public function cancel($userId, $reason = null)
     {
-        return $this->hasMany(StudentResults::class, 'exam_id');
+        return $this->update([
+            'status' => 'cancelled',
+            'cancel_reason' => $reason,
+            'cancelled_by' => $userId,
+            'cancelled_at' => now(),
+        ]);
     }
 }

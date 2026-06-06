@@ -2,21 +2,17 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class SystemUser extends Model
 {
-    use HasFactory;
-
-    protected $table = 'system_users';
+    use SoftDeletes;
 
     protected $fillable = [
         'custom_id',
         'user_id',
-        'fname',
-        'lname',
-        'email',
+        'full_name',
         'mobile',
         'nic',
         'bday',
@@ -24,33 +20,17 @@ class SystemUser extends Model
         'address1',
         'address2',
         'address3',
-        'is_active'
+        'is_active',
+        'note',
     ];
 
-    // Type casting for JSON responses
     protected $casts = [
-        'user_id'    => 'integer',
-        'is_active'  => 'boolean',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'bday' => 'date',
+        'is_active' => 'boolean',
     ];
 
-    // SystemUser belongs to User
     public function user()
     {
-        return $this->belongsTo(User::class, 'user_id');
-    }
-
-    // Through User, we can get UserType
-    public function userType()
-    {
-        return $this->hasOneThrough(
-            UserType::class,
-            User::class,
-            'id', // Foreign key on users table
-            'id', // Foreign key on user_types table
-            'user_id', // Local key on system_users
-            'user_type' // Local key on users
-        );
+        return $this->belongsTo(User::class);
     }
 }

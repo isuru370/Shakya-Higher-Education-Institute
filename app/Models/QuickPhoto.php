@@ -3,32 +3,25 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class QuickPhoto extends Model
 {
-    use HasFactory;
-
-    // Specify the correct table name
-    protected $table = 'quick_photo';
+    use SoftDeletes;
 
     protected $fillable = [
         'custom_id',
-        'quick_img',
-        'grade_id',
-        'is_active'
+        'image_path',
+        'is_active',
     ];
 
-    // Type casting for JSON responses
     protected $casts = [
-        'grade_id'   => 'integer',
-        'is_active'  => 'boolean',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'is_active' => 'boolean',
     ];
 
-    public function grade()
+    // helper
+    public function isActive()
     {
-        return $this->belongsTo(Grade::class);
+        return $this->is_active;
     }
 }

@@ -17,4 +17,16 @@ class PasswordResetOtp extends Model
         'expires_at' => 'datetime',
         'verified_at' => 'datetime',
     ];
+
+    // 🔥 helpers
+
+    public function isExpired()
+    {
+        return now()->gt($this->expires_at);
+    }
+
+    public function isVerified()
+    {
+        return !is_null($this->verified_at);
+    }
 }

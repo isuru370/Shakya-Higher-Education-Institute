@@ -2,38 +2,51 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class StudentAttendance extends Model
 {
-    use HasFactory;
-
-    protected $table = "student_attendances";
+    use SoftDeletes;
 
     protected $fillable = [
-        'at_date',
+        'local_uuid',
         'student_id',
-        'attendance_id',
+        'class_schedule_id',
+        'student_class_enrollment_id',
+        'attended_at',
+        'mark_method',
+        'marked_by',
+        'is_synced',
+        'note',
     ];
 
     protected $casts = [
-        'student_id'    => 'integer',
-        'attendance_id' => 'integer',
-        'at_date'       => 'datetime',
-        'created_at'    => 'datetime',
-        'updated_at'    => 'datetime',
+        'attended_at' => 'datetime',
+        'is_synced' => 'boolean',
     ];
 
-    // 🔗 Student relationship
+
     public function student()
     {
-        return $this->belongsTo(Student::class, 'student_id');
+        return $this->belongsTo(Student::class);
     }
 
-    // 🔗 Class attendance (session)
-    public function classAttendance()
+    public function classSchedule()
     {
-        return $this->belongsTo(ClassAttendance::class, 'attendance_id');
+        return $this->belongsTo(ClassSchedule::class);
+    }
+
+    public function enrollment()
+    {
+        return $this->belongsTo(
+            StudentClassEnrollment::class,
+            'student_class_enrollment_id'
+        );
+    }
+
+    public function markedBy()
+    {
+        return $this->belongsTo(User::class, 'marked_by');
     }
 }

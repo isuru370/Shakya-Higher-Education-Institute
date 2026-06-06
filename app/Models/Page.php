@@ -2,25 +2,32 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Page extends Model
 {
-    use HasFactory;
-
-    protected $table = 'pages';
+    use SoftDeletes;
 
     protected $fillable = [
-        'page',
+        'name',
         'route_name',
+        'module',
+        'is_active',
+        'description',
     ];
 
-    /**
-     * Page has many permissions
-     */
+    protected $casts = [
+        'is_active' => 'boolean',
+    ];
+
     public function permissions()
     {
-        return $this->hasMany(Permission::class, 'page_id');
+        return $this->hasMany(Permission::class);
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
     }
 }

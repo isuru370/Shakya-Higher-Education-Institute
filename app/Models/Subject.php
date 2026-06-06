@@ -2,23 +2,24 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Subject extends Model
 {
-    use HasFactory;
-
-    protected $table = 'subjects';
+    use SoftDeletes;
 
     protected $fillable = [
         'subject_name',
+        'is_active',
     ];
 
-    // Type casting for JSON responses
     protected $casts = [
-        'id'         => 'integer',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'is_active' => 'boolean',
     ];
+
+    public function classes()
+    {
+        return $this->hasMany(StudentClass::class);
+    }
 }

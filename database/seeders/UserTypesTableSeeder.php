@@ -7,31 +7,34 @@ use Illuminate\Support\Facades\DB;
 
 class UserTypesTableSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         $userTypes = [
-            ['type' => 'Admin'],
-            ['type' => 'User'],
+            [
+                'name' => 'Admin',
+                'code' => 'ADMIN',
+                'description' => 'System Administrator',
+            ],
+            [
+                'name' => 'User',
+                'code' => 'USER',
+                'description' => 'Normal User',
+            ],
         ];
 
-        // Check if data already exists
-        foreach ($userTypes as $userType) {
-            $exists = DB::table('user_types')
-                ->where('type', $userType['type'])
-                ->exists();
-
-            if (!$exists) {
-                DB::table('user_types')->insert([
-                    'type' => $userType['type'],
+        foreach ($userTypes as $type) {
+            DB::table('user_types')->updateOrInsert(
+                ['code' => $type['code']], // unique check
+                [
+                    'name' => $type['name'],
+                    'description' => $type['description'],
+                    'is_active' => true,
                     'created_at' => now(),
                     'updated_at' => now(),
-                ]);
-            }
+                ]
+            );
         }
 
-        $this->command->info('User types seeded successfully!');
+        $this->command->info('✅ User types seeded successfully!');
     }
 }

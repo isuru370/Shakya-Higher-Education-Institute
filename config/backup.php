@@ -4,7 +4,7 @@ return [
 
     'backup' => [
 
-        'name' => env('APP_NAME', 'laravel-backup'),
+        'name' => 'MINIPALASA-EDUCATION-CENTER', 
 
         'source' => [
 
@@ -44,7 +44,16 @@ return [
 
     // 🔹 Notifications completely disabled
     'notifications' => [
-        'notifications' => [],
+        'notifications' => [
+            \Spatie\Backup\Notifications\Notifications\BackupHasFailed::class         => [],
+            \Spatie\Backup\Notifications\Notifications\BackupWasSuccessful::class      => [],
+            \Spatie\Backup\Notifications\Notifications\CleanupHasFailed::class        => [],
+            \Spatie\Backup\Notifications\Notifications\CleanupWasSuccessful::class    => [],
+            \Spatie\Backup\Notifications\Notifications\HealthyBackupWasFound::class   => [],
+            \Spatie\Backup\Notifications\Notifications\UnhealthyBackupWasFound::class => [],
+        ],
+        'notifiable' => \Spatie\Backup\Notifications\Notifiable::class,
+        'via' => [],
     ],
 
     'monitor_backups' => [

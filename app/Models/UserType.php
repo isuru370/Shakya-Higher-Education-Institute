@@ -2,24 +2,36 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class UserType extends Model
 {
-    use HasFactory;
+    use SoftDeletes;
 
-    protected $fillable = ['type'];
+    protected $fillable = [
+        'name',
+        'code',
+        'is_active',
+        'description',
+    ];
 
-    // Type casting for JSON responses
     protected $casts = [
-        'id'         => 'integer',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'is_active' => 'boolean',
     ];
 
     public function users()
     {
-        return $this->hasMany(User::class, 'user_type');
+        return $this->hasMany(User::class);
+    }
+
+    public function permissions()
+    {
+        return $this->hasMany(Permission::class);
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
     }
 }
