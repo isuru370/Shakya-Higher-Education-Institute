@@ -2,49 +2,63 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class TeacherPayment extends Model
 {
-    use HasFactory;
-
-    protected $table = "teacher_payment";
+    use SoftDeletes;
 
     protected $fillable = [
-        'payment',
-        'date',
-        'reason',
-        'reason_code',
-        'payment_for',
-        'status',
+        'teacher_id',
         'user_id',
-        'teacher_id'
+        'payment_type',
+        'amount',
+        'payment_date',
+        'reason_code',
+        'reason',
+        'status',
+        'note',
     ];
 
-    // Type casting for JSON responses
     protected $casts = [
-        'payment'    => 'double',
-        'status'     => 'boolean',
-        'user_id'    => 'integer',
-        'teacher_id' => 'integer',
-        'date'       => 'datetime',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'amount' => 'decimal:2',
+        'payment_date' => 'date',
     ];
-
-    public function reasonDetail()
-    {
-        return $this->belongsTo(PaymentReason::class, 'reason_code', 'reason_code'); // foreignKey, ownerKey
-    }
 
     public function teacher()
     {
-        return $this->belongsTo(Teacher::class, 'teacher_id', 'id');
+        return $this->belongsTo(Teacher::class);
     }
 
-    public function user()
+    public function createdBy()
     {
-        return $this->belongsTo(User::class, 'user_id', 'id');
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function paymentReason()
+    {
+        return $this->belongsTo(
+            PaymentReason::class,
+            'reason_code',
+            'reason_code'
+        );
+    }
+
+    // 🔥 helpers
+
+    public function isAdvance()
+    {
+        return $this->payment_type === 'advance';
+    }
+
+    public function isDeduction()
+    {
+        return $this->payment_type === 'deduction';
+    }
+
+    public function isOther()
+    {
+        return $this->payment_type === 'other';
     }
 }

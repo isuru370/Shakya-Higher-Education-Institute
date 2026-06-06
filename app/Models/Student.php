@@ -2,18 +2,12 @@
 
 namespace App\Models;
 
-use App\Enums\ClassType;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Student extends Model
 {
-    use HasFactory;
-
-    protected $table = 'students';
+    use SoftDeletes;
 
     protected $fillable = [
         'custom_id',
@@ -22,8 +16,8 @@ class Student extends Model
         'full_name',
         'initial_name',
         'mobile',
-        'email',
         'whatsapp_mobile',
+        'email',
         'nic',
         'bday',
         'gender',
@@ -34,63 +28,64 @@ class Student extends Model
         'guardian_lname',
         'guardian_nic',
         'guardian_mobile',
-        'is_active',
-        'img_url',
         'grade_id',
         'class_type',
         'admission',
         'student_school',
+        'img_url',
+        'last_image_update_at',
+        'is_active',
         'permanent_qr_active',
-        'student_disable'
+        'student_disable',
     ];
 
     protected $casts = [
         'temporary_qr_code_expire_date' => 'datetime',
-        'grade_id'            => 'integer',
-        'admission'           => 'boolean',
-        'is_active'           => 'boolean',
+        'bday' => 'date',
+        'last_image_update_at' => 'datetime',
+        'admission' => 'boolean',
+        'is_active' => 'boolean',
         'permanent_qr_active' => 'boolean',
-        'student_disable'     => 'boolean',
-        'bday'                => 'date',
-        'created_at'          => 'datetime',
-        'updated_at'          => 'datetime',
+        'student_disable' => 'boolean',
     ];
 
-    // ===========================
-    // Relationships
-    // ===========================
-
-    public function grade(): BelongsTo
+    public function grade()
     {
         return $this->belongsTo(Grade::class);
     }
 
-    public function portalLogin(): HasOne
+    public function temporaryIdCard()
+    {
+        return $this->hasOne(TemporaryIdCard::class);
+    }
+
+    public function enrollments()
+    {
+        return $this->hasMany(StudentClassEnrollment::class);
+    }
+
+    public function attendances()
+    {
+        return $this->hasMany(StudentAttendance::class);
+    }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    public function admissionPayments()
+    {
+        return $this->hasMany(AdmissionPayment::class);
+    }
+
+    public function portalLogin()
     {
         return $this->hasOne(StudentPortalLogin::class);
     }
 
-    public function studentResults(): HasMany
+    public function mobileDevices()
     {
-        return $this->hasMany(StudentResults::class, 'student_id');
-    }
-
-    // ===========================
-    // Helper Methods
-    // ===========================
-
-    public function isOnline(): bool
-    {
-        return $this->class_type === ClassType::ONLINE;
-    }
-
-    public function isOffline(): bool
-    {
-        return $this->class_type === ClassType::OFFLINE;
-    }
-
-    public function hasActivePermanentQr(): bool
-    {
-        return $this->permanent_qr_active;
+        return $this->hasMany(MobileDevice::class);
     }
 }

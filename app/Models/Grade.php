@@ -2,21 +2,29 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Grade extends Model
 {
-    use HasFactory;
-
-    protected $table = 'grades';
+    use SoftDeletes;
 
     protected $fillable = [
         'grade_name',
+        'is_active',
     ];
 
-    // Type casting for JSON responses
     protected $casts = [
-        'id' => 'integer',
+        'is_active' => 'boolean',
     ];
+
+    public function students()
+    {
+        return $this->hasMany(Student::class);
+    }
+
+    public function classes()
+    {
+        return $this->hasMany(StudentClass::class);
+    }
 }

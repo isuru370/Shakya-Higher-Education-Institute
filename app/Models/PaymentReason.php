@@ -2,24 +2,26 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class PaymentReason extends Model
 {
-    use HasFactory;
-
-    protected $table = "payment_reason";
+    use SoftDeletes;
 
     protected $fillable = [
         'reason_code',
-        'reason',
+        'name',
+        'is_active',
+        'description',
     ];
 
-    // Type casting for JSON responses
     protected $casts = [
-        'id'         => 'integer',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'is_active' => 'boolean',
     ];
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
 }

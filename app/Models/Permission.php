@@ -2,33 +2,38 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Permission extends Model
 {
-    use HasFactory;
-
-    protected $table = 'permissions';
+    use SoftDeletes;
 
     protected $fillable = [
         'user_type_id',
         'page_id',
+        'can_view',
+        'can_create',
+        'can_update',
+        'can_delete',
+        'is_active',
     ];
 
-    /**
-     * Permission belongs to UserType
-     */
+    protected $casts = [
+        'can_view' => 'boolean',
+        'can_create' => 'boolean',
+        'can_update' => 'boolean',
+        'can_delete' => 'boolean',
+        'is_active' => 'boolean',
+    ];
+
     public function userType()
     {
-        return $this->belongsTo(UserType::class, 'user_type_id');
+        return $this->belongsTo(UserType::class);
     }
 
-    /**
-     * Permission belongs to Page
-     */
     public function page()
     {
-        return $this->belongsTo(Page::class, 'page_id');
+        return $this->belongsTo(Page::class);
     }
 }

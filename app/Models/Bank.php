@@ -3,27 +3,29 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Bank extends Model
 {
-    use HasFactory;
-
-    protected $table = 'banks';
+    use SoftDeletes;
 
     protected $fillable = [
         'bank_name',
         'bank_code',
+        'is_active',
     ];
 
     protected $casts = [
-        'id'         => 'integer',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'is_active' => 'boolean',
     ];
 
     public function branches()
     {
         return $this->hasMany(BankBranch::class);
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
     }
 }

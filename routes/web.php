@@ -1,310 +1,916 @@
 <?php
 
-use App\Http\Controllers\AdmissionPaymentsController;
-use App\Http\Controllers\AdmissionsController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\ClassAttendanceController;
-use App\Http\Controllers\ClassHallsController;
-use App\Http\Controllers\ClassRoomController;
-use App\Http\Controllers\EmailsController;
-use App\Http\Controllers\ExamController;
-use App\Http\Controllers\ForgotPasswordController;
-use App\Http\Controllers\InstitutePaymentController;
-use App\Http\Controllers\PageController;
-use App\Http\Controllers\PaymentReasonController;
-use App\Http\Controllers\PaymentsController;
-use App\Http\Controllers\ReceiptController;
-use App\Http\Controllers\ReportController;
-use App\Http\Controllers\SettingsCodeController;
-use App\Http\Controllers\StudentAttendancesController;
-use App\Http\Controllers\SystemUserController;
-use App\Http\Controllers\UserTypesController;
-use App\Http\Controllers\StudentController;
-use App\Http\Controllers\StudentIdCardController;
-use App\Http\Controllers\TeacherController;
-use App\Http\Controllers\TeacherLedgerSummaryController;
-use App\Http\Controllers\TeacherPaymentsController;
+use App\Http\Controllers\Admin\ActivityLogController;
+use App\Http\Controllers\Admin\AdmissionController;
+use App\Http\Controllers\Admin\AdmissionPaymentController;
+use App\Http\Controllers\Admin\OrganizerPaymentController;
+use App\Http\Controllers\Admin\SystemUserController;
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\StudentController;
+use App\Http\Controllers\Admin\StudentClassController;
+use App\Http\Controllers\Admin\StudentClassEnrollmentController;
+use App\Http\Controllers\Admin\TeacherController;
+use App\Http\Controllers\Admin\OrganizerController;
+use App\Http\Controllers\Admin\ClassCategoryController;
+use App\Http\Controllers\Admin\ClassCategoryFeeController;
+use App\Http\Controllers\Admin\ClassHallController;
+use App\Http\Controllers\Admin\ClassScheduleController;
+use App\Http\Controllers\Admin\ClassTimeTableController;
+use App\Http\Controllers\Admin\DailyReportController;
+use App\Http\Controllers\Admin\DatabaseBackupController;
+use App\Http\Controllers\Admin\ExtraIncomeController;
+use App\Http\Controllers\Admin\ForgotPasswordController;
+use App\Http\Controllers\Admin\ImageUploadController;
+use App\Http\Controllers\Admin\InstituteExpenseController;
+use App\Http\Controllers\Admin\InstituteIncomeController;
+use App\Http\Controllers\Admin\InstitutePaymentReportController;
+use App\Http\Controllers\Admin\InstituteReportController;
+use App\Http\Controllers\Admin\LogController;
+use App\Http\Controllers\Admin\MonthlyReportController;
+use App\Http\Controllers\Admin\StudentAttendanceController;
+use App\Http\Controllers\Admin\StudentIDCardController;
+use App\Http\Controllers\Admin\StudentImageController;
+use App\Http\Controllers\Admin\StudentPaymentController;
+use App\Http\Controllers\Admin\TeacherReportController;
+use App\Http\Controllers\Admin\TeacherSalaryController;
+use App\Http\Controllers\Admin\TemporaryIDCardController;
+use App\Http\Controllers\Admin\TodayAttendanceController;
+use App\Http\Controllers\Admin\UserPermissionController;
+use App\Http\Controllers\Admin\UserProfileController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
 
+/*
+|--------------------------------------------------------------------------
+| Public Routes
+|--------------------------------------------------------------------------
+*/
 
 Route::get('/', function () {
     if (auth()->check()) {
-        return redirect('/dashboard');
+        return view('welcome');
+        // return redirect('/dashboard');
     }
     return view('welcome');
 })->name('welcome');
 
-Route::get('/student_regiter', function () {
-    return view('student_register');
-})->name('student_register');
 
 Route::get('/contact_administrator', function () {
     return view('contact_administrator');
 })->name('contact_administrator');
 
+Route::post('/contact_administrator', function (Request $request) {
+    $validated = $request->validate([
+        'full_name'  => ['required', 'string', 'max:100'],
+        'email'      => ['required', 'email', 'max:150'],
+        'phone'      => ['required', 'string', 'max:20'],
+        'subject'    => ['required', 'string', 'max:150'],
+        'message'    => ['required', 'string', 'max:5000'],
+        'attachment' => ['nullable', 'file', 'max:5120', 'mimes:pdf,doc,docx,jpg,jpeg,png'],
+    ]);
 
+    $toEmail = 'info@nexorait.lk';
 
-Route::prefix('forgot-password')->group(function () {
+    Mail::send('emails.contact_administrator', [
+        'data' => $validated,
+    ], function ($mail) use ($validated, $toEmail, $request) {
+        $mail->to($toEmail)
+            ->subject('Contact Form: ' . $validated['subject'])
+            ->replyTo($validated['email'], $validated['full_name']);
 
-    Route::get('/', [ForgotPasswordController::class, 'showForgotForm'])
-        ->name('forgotten_password');
+        if ($request->hasFile('attachment')) {
+            $file = $request->file('attachment');
 
-    Route::post('/send-otp', [ForgotPasswordController::class, 'sendOtp'])
-        ->name('forgot_password.send_otp');
-
-    Route::post('/verify-otp', [ForgotPasswordController::class, 'verifyOtp'])
-        ->name('forgot_password.verify_otp');
-
-    Route::post('/resend-otp', [ForgotPasswordController::class, 'resendOtp'])
-        ->name('forgot_password.resend_otp');
-
-    Route::post('/reset', [ForgotPasswordController::class, 'resetPassword'])
-        ->name('forgot_password.reset');
-});
-
-
-
-// Authentication routes
-Route::middleware(['guest'])->group(function () {
-    Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
-    Route::post('/login', [AuthController::class, 'login'])->name('login.post');
-});
-
-// Logout route
-Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-
-// Protected routes (login වී ඇති users සඳහා පමණි)
-Route::middleware(['auth', 'check.permission'])->group(function () {
-    // Dashboard
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    Route::get('/home', [DashboardController::class, 'index'])->name('home');
-
-    // System Users - Web Routes
-    Route::prefix('system-users')->group(function () {
-        // Page routes
-        Route::get('/', [SystemUserController::class, 'viewPage'])->name('system-users.index');
-        Route::get('/create', [SystemUserController::class, 'createPage'])->name('system-users.create');
-        Route::get('/{id}/view', [SystemUserController::class, 'showPage'])->name('system-users.showPage');
-        Route::get('/{id}/edit', [SystemUserController::class, 'editPage'])->name('system-users.edit');
-        // AJAX fetch from web
-        Route::get('/list', [SystemUserController::class, 'getSystemUsers'])->name('system-users.list');
+            $mail->attach($file->getRealPath(), [
+                'as' => $file->getClientOriginalName(),
+                'mime' => $file->getMimeType(),
+            ]);
+        }
     });
 
-    // routes/web.php
-    Route::prefix('user-types')->group(function () {
-        Route::get('/', [UserTypesController::class, 'index'])->name('user-types.index');
-        Route::get('/create', [UserTypesController::class, 'createPage'])->name('user-types.create');
-        Route::get('/{id}/view', [UserTypesController::class, 'showPage'])->name('user-types.show');
+    return back()->with('success', 'Your message has been sent successfully.');
+})->name('contact_administrator.send');
 
-        // AJAX routes for web
-        Route::get('/list', [UserTypesController::class, 'getUserTypes'])->name('user-types.list');
-    });
 
-    Route::prefix('class-attendances')->group(function () {
-        Route::get('/{classCategoryHasStudentClassId}', [ClassAttendanceController::class, 'indexPage'])->name('class-attendance.index');
-        Route::get('/create/{classCategoryHasStudentClassId}', [ClassAttendanceController::class, 'createPage'])->name('class-attendance.create');
-    });
+/*
+|--------------------------------------------------------------------------
+| Forgot Password
+|--------------------------------------------------------------------------
+*/
 
-    Route::prefix('students')->group(function () {
-        Route::get('/', [StudentController::class, 'index'])->name('students.index');
-        Route::get('/import', [StudentController::class, 'showImportForm'])->name('students.import.form');
-        Route::post('/import', [StudentController::class, 'import'])->name('students.import');
-        Route::get('/create', [StudentController::class, 'create'])->name('students.create');
+Route::prefix('forgot-password')
+    ->controller(ForgotPasswordController::class)
+    ->group(function () {
 
-        // PUT THIS ABOVE THE {id} ROUTE
-        Route::get('/studentImages', [StudentController::class, 'studentImages'])->name('students.studentImages');
-        Route::get('/images', [StudentController::class, 'allImages'])->name('students.images');
-
-        // ✅ FIX: Remove the duplicate 'students' from the URL
-        Route::get('/add_student_to_class/{class_id}', [StudentController::class, 'addStudentToClass'])->name('students.add_student_to_class');
-        Route::get('/add_student_to_single_class/{student_id}', [StudentController::class, 'addStudentToSingleClass'])->name('students.add_student_to_single_class');
-        Route::get('/student_analytic/{student_id}', [StudentController::class, 'studentAnalytic'])->name('students.student_analytic');
-
-        Route::get('/{student_id}/edit', [StudentController::class, 'editPage'])->name('students.edit');
-        Route::get('/{student_id}', [StudentController::class, 'show'])->name('students.show');
-        Route::get('/{classCategoryHasStudentClassId}/{student_id}/exam-results', [StudentController::class, 'examResults'])->name('students.exam_results');
-    });
-
-    // ====================================================
-    // STUDENT ID CARD ROUTES (All ID card related routes)
-    // ====================================================
-    Route::prefix('student-id-card')->group(function () {
-        // ID card generation page (with search/sort parameters)
-        Route::get('/ganarateStudentId', [StudentIdCardController::class, 'ganarateStudentId'])
-            ->name('student-id-card.ganarateStudentId');
-
-        // Single student ID card preview
-        Route::get('/idcard/{custom_id}', [StudentIdCardController::class, 'previewCard'])
-            ->name('idcard.design1');
-
-        // Generate ID cards for selected students
-        Route::post('/generate-bulk', [StudentIdCardController::class, 'generateBulkCards'])
-            ->name('student-id-card.generate.bulk');
-
-        // Generate ID cards for all students
-        Route::get('/generate-all', [StudentIdCardController::class, 'generateAllCards'])
-            ->name('student-id-card.generate.all');
-
-        // Clear search filters
-        Route::get('/clear-filters', [StudentIdCardController::class, 'clearFilters'])
-            ->name('student-id-card.clear-filters');
+        Route::get('/', 'index')->name('forgot_password.form');
+        Route::post('/send-otp', 'sendOtp')->name('forgot_password.send_otp');
+        Route::post('/verify-otp', 'verifyOtp')->name('forgot_password.verify_otp');
+        Route::post('/resend-otp', 'resendOtp')->name('forgot_password.resend_otp');
+        Route::post('/reset-password', 'updatePassword')->name('forgot_password.reset');
     });
 
 
+/*
+|--------------------------------------------------------------------------
+| Authentication
+|--------------------------------------------------------------------------
+*/
+
+// Login
+Route::get(
+    '/login',
+    [LoginController::class, 'showLoginForm']
+)->name('login');
+
+Route::post(
+    '/login',
+    [LoginController::class, 'login']
+)->name('login.post');
+
+// Logout
+Route::post(
+    '/logout',
+    [LoginController::class, 'logout']
+)->name('logout');
 
 
-    Route::prefix('class-rooms')->group(function () {
-        Route::get('/', [ClassRoomController::class, 'index'])->name('class_rooms.index');
-        Route::get('/create', [ClassRoomController::class, 'create'])->name('class_rooms.create');
-        Route::get('/schedule', [ClassRoomController::class, 'schedule'])->name('class_rooms.schedule');   // <-- FIX
-        Route::get('/add_class_category/{id}', [ClassRoomController::class, 'classCategoryAdd'])->name('class_rooms.add_class_category');
-        Route::get('/{id}/edit', [ClassRoomController::class, 'edit'])->name('class_rooms.edit');
-        Route::get('/{id}', [ClassRoomController::class, 'show'])->name('class_rooms.show');
-    });
+/*
+|--------------------------------------------------------------------------
+| Protected Admin Routes
+|--------------------------------------------------------------------------
+|
+| Only authenticated active users
+|
+*/
 
-    Route::prefix('student-exam')->group(function () {
-        Route::get('/', [ExamController::class, 'indexPage'])->name('student_exam.index');
-        Route::get('/create', [ExamController::class, 'createPage'])->name('student_exam.create');
+Route::middleware([
+    'auth',
+    'user.active',
+    'permission'
+])
 
-        // Dynamic route must come after static ones
-        Route::get('/{exam_id}/marks/create', [ExamController::class, 'enterMarks'])->name('student_exam.marks');
-    });
+    ->prefix('admin')
 
-    Route::prefix('halls')->group(function () {
-        Route::get('/', [ClassHallsController::class, 'indexPage'])->name('class_halls.index');
-    });
+    ->name('admin.')
+
+    ->group(function () {
 
 
+        Route::get('/profile', [UserProfileController::class, 'index'])
+            ->name('profile.index');
 
-    Route::prefix('teachers')->group(function () {
+        Route::post('/profile', [UserProfileController::class, 'update'])
+            ->name('profile.update');
 
-        Route::get('/', [TeacherController::class, 'index'])->name('teachers.index');
-        Route::get('/create', [TeacherController::class, 'create'])->name('teachers.create');
-        Route::get('/classes/{id}', [TeacherController::class, 'classes'])->name('teachers.classes');
+        Route::post('/profile/password', [UserProfileController::class, 'changePassword'])
+            ->name('profile.password');
+        /*
+        |--------------------------------------------------------------------------
+        | Dashboard
+        |--------------------------------------------------------------------------
+        */
 
-        // 👇 Specific route (should be ABOVE /{id})
-        Route::get('/view_student/{id}', [TeacherController::class, 'viewStudents'])
-            ->name('teachers.view_student');
-
-        // Dynamic routes MUST stay at the bottom
-        Route::get('/{id}/edit', [TeacherController::class, 'editPage'])->name('teachers.edit');
-        Route::get('/{id}', [TeacherController::class, 'show'])->name('teachers.show');
-    });
-
-    Route::prefix('admissions')->group(function () {
-        Route::get('/', [AdmissionsController::class, 'indexPage'])->name('admissions.index');
-    });
-
-    Route::prefix('pay-admissions')->group(function () {
-        Route::get('/', [AdmissionPaymentsController::class, 'payAdmissionPage'])
-            ->name('pay-admissions.admission_payment');
-    });
-
-    Route::prefix('student-payment')->name('student-payment.')->group(function () {
-        Route::get('/', [PaymentsController::class, 'indexPage'])
-            ->name('index');
-        Route::get('/create', [PaymentsController::class, 'createPage'])
-            ->name('create');
-        Route::get('/today/pdf', [PaymentsController::class, 'downloadTodayPaymentsPDF']);
-        Route::get('/details/{student_id}/{student_class_id}', [PaymentsController::class, 'detailsPage'])
-            ->name('details');
-    });
-    Route::prefix('student_attendance')->name('student_attendance.')->group(function () {
-        Route::get('/', [StudentAttendancesController::class, 'indexPage'])
-            ->name('index');
-        Route::get('/daily', [StudentAttendancesController::class, 'dailyMarkPage'])
-            ->name('daily');
-        // FIXED: Add slashes between parameters
         Route::get(
-            '/{class_id}/{attendance_id}/{class_category_student_class_id}/details',
-            [StudentAttendancesController::class, 'detailsPage']
-        )->name('details');
+            '/dashboard',
+            [DashboardController::class, 'index']
+        )->name('dashboard');
+
+        Route::resource(
+            'system-users',
+            SystemUserController::class
+        );
+
+        Route::get('system-users/export/excel', [SystemUserController::class, 'exportExcel'])
+            ->name('system-users.export.excel');
+
+        Route::get('system-users/export/pdf', [SystemUserController::class, 'exportPdf'])
+            ->name('system-users.export.pdf');
+
+        Route::get(
+            'user-permissions/{systemUser}',
+            [UserPermissionController::class, 'index']
+        )->name('user-permissions.index');
+
+        Route::post(
+            'user-permissions/{systemUser}',
+            [UserPermissionController::class, 'store']
+        )->name('user-permissions.store');
+
+
+        Route::get(
+            'institute-yearly-report',
+            [InstitutePaymentReportController::class, 'yearlyPaymentReport']
+        )->name('institute-yearly-report');
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Student Management
+        |--------------------------------------------------------------------------
+        */
+
+        // Search
+        Route::get(
+            'students/search',
+            [StudentController::class, 'search']
+        )->name('students.search');
+
+        // Resource
+        Route::resource(
+            'students',
+            StudentController::class
+        );
+
+        // Toggle Active
+        Route::patch(
+            'students/{student}/toggle-active',
+            [StudentController::class, 'toggleActive']
+        )->name('students.toggleActive');
+
+        // Export
+        Route::get(
+            'students-export/excel',
+            [StudentController::class, 'exportExcel']
+        )->name('students.exportExcel');
+
+        Route::get(
+            'students-export/pdf',
+            [StudentController::class, 'exportPdf']
+        )->name('students.exportPdf');
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Student Image Upload
+        |--------------------------------------------------------------------------
+        */
+
+        Route::post(
+            '/upload/student-image',
+            [ImageUploadController::class, 'uploadStudentImage']
+        )->name('upload.student.image');
+
+        Route::post(
+            '/upload/quick-photo',
+            [ImageUploadController::class, 'uploadQuickPhoto']
+        )->name('upload.quick.photo');
+
+        Route::delete(
+            '/upload/delete',
+            [ImageUploadController::class, 'delete']
+        )->name('upload.delete');
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Teacher Management
+        |--------------------------------------------------------------------------
+        */
+
+        Route::resource(
+            'teachers',
+            TeacherController::class
+        );
+
+        Route::patch(
+            'teachers/{teacher}/toggle-active',
+            [TeacherController::class, 'toggleActive']
+        )->name('teachers.toggleActive');
+
+        Route::get(
+            'teachers-export/excel',
+            [TeacherController::class, 'exportExcel']
+        )->name('teachers.exportExcel');
+
+        Route::get(
+            'teachers-export/pdf',
+            [TeacherController::class, 'exportPdf']
+        )->name('teachers.exportPdf');
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Organizer Management
+        |--------------------------------------------------------------------------
+        */
+
+        Route::resource(
+            'organizers',
+            OrganizerController::class
+        );
+
+        Route::patch(
+            'organizers/{organizer}/toggle-active',
+            [OrganizerController::class, 'toggleActive']
+        )->name('organizers.toggleActive');
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Student Classes
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get(
+            'student-classes/search',
+            [StudentClassController::class, 'search']
+        )->name('student-classes.search');
+
+        Route::resource(
+            'student-classes',
+            StudentClassController::class
+        );
+
+        Route::patch(
+            'student-classes/{studentClass}/toggle-active',
+            [StudentClassController::class, 'toggleActive']
+        )->name('student-classes.toggleActive');
+
+        Route::patch(
+            'student-classes/{studentClass}/toggle-ongoing',
+            [StudentClassController::class, 'toggleOngoing']
+        )->name('student-classes.toggleOngoing');
+
+        Route::get(
+            'student-classes/export/excel',
+            [StudentClassController::class, 'exportExcel']
+        )->name('student-classes.exportExcel');
+
+        Route::get(
+            'student-classes/export/pdf',
+            [StudentClassController::class, 'exportPdf']
+        )->name('student-classes.exportPdf');
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Class Categories
+        |--------------------------------------------------------------------------
+        */
+
+        Route::resource(
+            'class-categories',
+            ClassCategoryController::class
+        );
+
+        Route::patch(
+            'class-categories/{classCategory}/toggle-active',
+            [ClassCategoryController::class, 'toggleActive']
+        )->name('class-categories.toggleActive');
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Class Category Fees
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get(
+            'class-category-fees/by-class/{studentClass}',
+            [ClassCategoryFeeController::class, 'byClass']
+        )->name('class-category-fees.byClass');
+
+        Route::resource(
+            'class-category-fees',
+            ClassCategoryFeeController::class
+        );
+
+        Route::patch(
+            'class-category-fees/{classCategoryFee}/toggle-active',
+            [ClassCategoryFeeController::class, 'toggleActive']
+        )->name('class-category-fees.toggleActive');
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Class Halls
+        |--------------------------------------------------------------------------
+        */
+
+        Route::resource(
+            'class-halls',
+            ClassHallController::class
+        );
+
+        Route::patch(
+            'class-halls/{classHall}/toggle-active',
+            [ClassHallController::class, 'toggleActive']
+        )->name('class-halls.toggleActive');
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Class Schedules
+        |--------------------------------------------------------------------------
+        */
+        Route::get('class-schedules/category-view', [ClassScheduleController::class, 'categorySchedules'])
+            ->name('class-schedules.categorySchedules');
+
+        Route::resource(
+            'class-schedules',
+            ClassScheduleController::class
+        );
+
+        Route::patch(
+            'class-schedules/{classSchedule}/toggle-active',
+            [ClassScheduleController::class, 'toggleActive']
+        )->name('class-schedules.toggleActive');
+
+        Route::patch(
+            'class-schedules/{classSchedule}/cancel',
+            [ClassScheduleController::class, 'cancel']
+        )->name('class-schedules.cancel');
+
+        Route::patch(
+            'class-schedules/{classSchedule}/status-update',
+            [ClassScheduleController::class, 'statusUpdate']
+        )->name('class-schedules.statusUpdate');
+
+        Route::get(
+            'today-classes',
+            [ClassScheduleController::class, 'todayClasses']
+        )->name('class-schedules.todayClasses');
+
+
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Student Class Enrollments
+        |--------------------------------------------------------------------------
+        */
+
+        // Category Students
+        Route::get(
+            'student-class-enrollments/class/{studentClass}/category/{classCategory}/students',
+            [StudentClassEnrollmentController::class, 'categoryStudents']
+        )->name('student-class-enrollments.categoryStudents');
+
+        // Export PDF
+        Route::get(
+            'student-class-enrollments/class/{studentClass}/category/{classCategory}/students/pdf',
+            [StudentClassEnrollmentController::class, 'categoryStudentsPdf']
+        )->name('student-class-enrollments.categoryStudentsPdf');
+
+        // Export Excel
+        Route::get(
+            'student-class-enrollments/class/{studentClass}/category/{classCategory}/students/excel',
+            [StudentClassEnrollmentController::class, 'categoryStudentsExcel']
+        )->name('student-class-enrollments.categoryStudentsExcel');
+
+        Route::get(
+            'student-class-enrollments/class/{class}/category-fee/{classCategoryFee}/students/{year}/{month}',
+            [StudentClassEnrollmentController::class, 'classCategoryWisePaymentStudent']
+        )->name('student-class-enrollments.category-wise-payment');
+
+        // Resource
+        Route::resource(
+            'student-class-enrollments',
+            StudentClassEnrollmentController::class
+        );
+
+        // Toggle Active
+        Route::patch(
+            'student-class-enrollments/{studentClassEnrollment}/toggle-active',
+            [StudentClassEnrollmentController::class, 'toggleActive']
+        )->name('student-class-enrollments.toggleActive');
+
+        // Leave Enrollment
+        Route::patch(
+            'student-class-enrollments/{studentClassEnrollment}/leave',
+            [StudentClassEnrollmentController::class, 'leave']
+        )->name('student-class-enrollments.leave');
+
+        // Restore Enrollment
+        Route::patch(
+            'student-class-enrollments/{id}/restore',
+            [StudentClassEnrollmentController::class, 'restore']
+        )->name('student-class-enrollments.restore');
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Payments
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/payments', function () {
+            return view('admin.payment.index');
+        })->name('payments.index');
+
+        Route::get('/payments/today-receipt', function () {
+            return view('admin.payment.today-receipt');
+        })->name('payments.today-receipt');
+
+
+
+        Route::resource(
+            'admissions',
+            AdmissionController::class
+        );
+
+        Route::resource(
+            'admission-payments',
+            AdmissionPaymentController::class
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Attendance
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/attendance', function () {
+            return view('admin.attendance.index');
+        })->name('attendance.index');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Organizer Payments
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/organizer-payments', [
+            OrganizerPaymentController::class,
+            'index'
+        ])->name('organizer-payments.index');
+
+        Route::get('/organizer-payments/{organizer}/pay', [
+            OrganizerPaymentController::class,
+            'pay'
+        ])->name('organizer-payments.pay');
+
+        Route::post('/organizer-payments/{organizer}/store', [
+            OrganizerPaymentController::class,
+            'store'
+        ])->name('organizer-payments.store');
+
+        Route::delete('/organizer-payments/{organizerPayment}', [
+            OrganizerPaymentController::class,
+            'destroy'
+        ])->name('organizer-payments.destroy');
+
+        Route::get('/organizer-payments/{organizer}/salary-slip', [
+            OrganizerPaymentController::class,
+            'salarySlip'
+        ])->name('organizer-payments.salary-slip');
+
+        Route::post('/organizer-payments/{organizer}/adjustment', [
+            OrganizerPaymentController::class,
+            'storeAdjustment'
+        ])->name('organizer-payments.adjustment-store');
+
+        Route::get('organizers/export/excel', [OrganizerController::class, 'exportExcel'])
+            ->name('organizers.export.excel');
+
+        Route::get('organizers/export/pdf', [OrganizerController::class, 'exportPdf'])
+            ->name('organizers.export.pdf');
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Teacher Salary Management
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/teacher-salaries', [
+            TeacherSalaryController::class,
+            'index'
+        ])->name('teacher-salaries.index');
+
+        Route::get('/teacher-salaries/{teacher}/{year}/{month}', [
+            TeacherSalaryController::class,
+            'show'
+        ])->name('teacher-salaries.show');
+
+        Route::post('/teacher-salaries/{teacher}/pay', [
+            TeacherSalaryController::class,
+            'teacherSalaryPaid'
+        ])->name('teacher-salaries.pay');
+
+        Route::get('/teacher-salaries/{teacher}/{year}/{month}/slip', [
+            TeacherSalaryController::class,
+            'printSalarySlip'
+        ])->name('teacher-salaries.slip');
+
+
+        Route::post(
+            '/teacher-salaries/{teacher}/payment',
+            [TeacherSalaryController::class, 'teacherPaymentStore']
+        )->name('teacher-salaries.payment.store');
+
+        Route::get('/teacher-salaries/{teacher}/{year}/{month}/details', [
+            TeacherSalaryController::class,
+            'paymentDetailsView'
+        ])->name('teacher-salaries.payment-details');
+
+        Route::delete('/teacher-salaries/{paymentId}', [
+            TeacherSalaryController::class,
+            'paymentDelete'
+        ])->name('teacher-salaries.payment-delete');
+
+        Route::get('/teacher-salaries/{teacher}/{year}/{month}/summary', [
+            TeacherSalaryController::class,
+            'teacherPaymentAndClassSummery'
+        ])->name('teacher-salaries.payment-summary');
+
+        /* 
+        |--------------------------------------------------------------------------
+        | Institute Income Report
+        |-------------------------------------------------------------------------- 
+        */
+        Route::get('institute-income/monthly-report', [
+            InstituteIncomeController::class,
+            'monthlyIncomeReport'
+        ])->name('institute-income.monthly-report');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Extra Incomes
+        |--------------------------------------------------------------------------
+        */
+
+        Route::resource(
+            'extra-incomes',
+            ExtraIncomeController::class
+        );
+
+        Route::resource(
+            'temporary-id-cards',
+            TemporaryIDCardController::class
+        )->only([
+            'index',
+            'create',
+            'store'
+        ]);;
+
+        Route::get(
+            'temporary-id-cards/preview',
+            [TemporaryIDCardController::class, 'preview']
+        )->name('temporary-id-cards.preview');
+
+        Route::post(
+            'temporary-id-cards/preview-generate',
+            [TemporaryIDCardController::class, 'generatePreview']
+        )->name('temporary-id-cards.preview-generate');
+
+        Route::get(
+            'temporary-id-cards/status',
+            [TemporaryIDCardController::class, 'updateStatusPage']
+        )->name('temporary-id-cards.update-status');
+
+        Route::post(
+            'temporary-id-cards/change-status',
+            [TemporaryIDCardController::class, 'changeStatus']
+        )->name('temporary-id-cards.change-status');
+
+        Route::post(
+            'temporary-id-cards/download-pdf',
+            [TemporaryIDCardController::class, 'downloadPdf']
+        )->name('temporary-id-cards.download-pdf');
+        /*
+|--------------------------------------------------------------------------
+| Daily Reports
+|--------------------------------------------------------------------------
+*/
+
+        // Daily Report Routes
+        Route::get('daily-report', [DailyReportController::class, 'index'])->name('daily-report.index');
+        Route::get('daily-report/{type}/pdf', [DailyReportController::class, 'downloadPdf'])->name('daily-report.pdf');
+        Route::get('daily-report/{type}/excel', [DailyReportController::class, 'downloadExcel'])->name('daily-report.excel');
+
+        // Summary Report Download Routes (for generateDailyReport)
+        Route::get('daily-report/summary/pdf', [DailyReportController::class, 'downloadSummaryPdf'])->name('daily-report.summary.pdf');
+        Route::get('daily-report/summary/excel', [DailyReportController::class, 'downloadSummaryExcel'])->name('daily-report.summary.excel');
+
+        // Teacher Report Routes
+        Route::get('/teacher-report', [TeacherReportController::class, 'index'])->name('teacher-report.index');
+        Route::get('/teacher-report/pdf', [TeacherReportController::class, 'downloadTeacherWithStudentPaymentsPdf'])->name('teacher-report.pdf');
+        Route::get('/teacher-report/excel', [TeacherReportController::class, 'downloadTeacherWithStudentPaymentsExcel'])->name('teacher-report.excel');
+        // Teacher Expense Report
+        Route::get('/teacher-report/expense', [TeacherReportController::class, 'teacherExpenseReport'])->name('teacher-expense-report');
+        Route::get('/teacher-report/expense/excel', [TeacherReportController::class, 'teacherExpenseReportExcel'])->name('teacher-expense-report.excel');
+        Route::get('/teacher-report/expense/pdf', [TeacherReportController::class, 'teacherExpenseReportPdf'])->name('teacher-expense-report.pdf');
+
+        Route::get('/monthly-report', [MonthlyReportController::class, 'index'])
+            ->name('monthly-report.index');
+
+        // Excel
+        Route::get(
+            '/excel/teacher/teacher-salary-report/excel',
+            [MonthlyReportController::class, 'TeacherSalaryReportExcel']
+        )->name('teacher.salary.report.excel');
+
+        // PDF
+        Route::get(
+            '/pdf/teacher/teacher-salary-report/pdf',
+            [MonthlyReportController::class, 'TeacherSalaryReportPdf']
+        )->name('teacher.salary.report.pdf');
+        /*
+|--------------------------------------------------------------------------
+| Institute Expenses
+|--------------------------------------------------------------------------
+*/
+
+        Route::get('/student-images', [StudentImageController::class, 'index'])
+            ->name('student-images.index');
+
+        Route::post('/student-images/{quickPhoto}/assign', [StudentImageController::class, 'assign'])
+            ->name('student-images.assign');
+
+        Route::resource(
+            'institute-expenses',
+            InstituteExpenseController::class
+        );
+
+        Route::patch(
+            'institute-expenses/{instituteExpense}/toggle-status',
+            [InstituteExpenseController::class, 'toggleStatus']
+        )->name('institute-expenses.toggle-status');
+
+
+        Route::prefix('student-id-cards')
+            ->name('student-id-cards.')
+            ->group(function () {
+
+                // View routes
+                Route::get('/', [StudentIDCardController::class, 'index'])
+                    ->name('index');
+
+                Route::get('{studentIdCard}/print', [StudentIDCardController::class, 'print'])
+                    ->name('print');
+
+                // Download routes (NO Browsershot - Client side)
+                Route::get('{studentIdCard}/download', [StudentIDCardController::class, 'downloadSingle'])
+                    ->name('download-single');
+
+                Route::post('download-bulk', [StudentIDCardController::class, 'downloadBulk'])
+                    ->name('download-bulk');
+
+                // Status update routes (using Fetch API)
+                Route::patch('{studentIdCard}/status', [StudentIDCardController::class, 'updateStatus'])
+                    ->name('update-status');
+
+                Route::patch('bulk-status', [StudentIDCardController::class, 'bulkUpdateStatus'])
+                    ->name('bulk-update-status');
+            });
+
+        Route::get('/today-attendance', [TodayAttendanceController::class, 'index'])
+            ->name('today-attendance.index');
+
+        Route::get(
+            '/reports/teacher-student-payment',
+            [MonthlyReportController::class, 'TeacherWithStudentPaymentReport']
+        )->name('teacher.student.payment.report');
+        Route::get(
+            '/reports/teacher-student-payment-excel',
+            [MonthlyReportController::class, 'TeacherWithStudentPaymentReportExcel']
+        )->name('teacher.student.payment.report.excel');
+        Route::get(
+            '/reports/teacher-student-payment-pdf',
+            [MonthlyReportController::class, 'TeacherWithStudentPaymentReportPdf']
+        )->name('teacher.student.payment.report.pdf');
+
+        // Report Page
+        Route::get(
+            '/institute-reports',
+            [InstituteReportController::class, 'index']
+        )->name('institute-reports.index');
+
+        // PDF Download
+        Route::get(
+            '/institute-reports/pdf',
+            [InstituteReportController::class, 'institutePaymentReportPdf']
+        )->name('institute-reports.pdf');
+
+        // Excel Download
+        Route::get(
+            '/institute-reports/excel',
+            [InstituteReportController::class, 'institutePaymentReportExcel']
+        )->name('institute-reports.excel');
+
+
+        /*
+|--------------------------------------------------------------------------
+| Institute Expenses
+|--------------------------------------------------------------------------
+*/
+
+        Route::get('weekly-timetable', [ClassTimeTableController::class, 'weeklyTimeTable'])
+            ->name('weekly-timetable');
+
+        Route::get('weekly-timetable/pdf', [ClassTimeTableController::class, 'downloadPdf'])
+            ->name('weekly.pdf');
+
+        Route::get('weekly-timetable/excel', [ClassTimeTableController::class, 'downloadExcel'])
+            ->name('weekly.excel');
+
+        /*
+|--------------------------------------------------------------------------
+| System Setting
+|--------------------------------------------------------------------------
+*/
+
+        Route::get('setting', [DatabaseBackupController::class, 'index'])
+            ->name('setting.index');
+
+        Route::get('setting/backup/export', [DatabaseBackupController::class, 'export'])
+            ->name('setting.backup.export');
+
+        Route::post('setting/backup/import', [DatabaseBackupController::class, 'import'])
+            ->name('setting.backup.import');
+
+        /*
+|--------------------------------------------------------------------------
+|  Activity Logs
+|--------------------------------------------------------------------------
+*/
+
+        Route::get('/activity-logs', [App\Http\Controllers\Admin\ActivityLogController::class, 'index'])->name('activity-logs.index');
+        Route::get('/activity-logs/export', [App\Http\Controllers\Admin\ActivityLogController::class, 'export'])->name('activity-logs.export');
+        Route::post('/activity-logs/clear', [App\Http\Controllers\Admin\ActivityLogController::class, 'clearOld'])->name('activity-logs.clear');
+
+
+        /*
+|--------------------------------------------------------------------------
+|  Laravel Logs
+|--------------------------------------------------------------------------
+*/
+
+        Route::get(
+            '/logs/laravel',
+            [LogController::class, 'index']
+        )->name('logs.laravel.index');
+
+        Route::post(
+            '/logs/laravel/clear',
+            [LogController::class, 'clear']
+        )->name('logs.laravel.clear');
+
+        Route::get(
+            '/logs/laravel/download',
+            [LogController::class, 'download']
+        )->name('logs.laravel.download');
+
+        Route::get(
+            '/logs/laravel/stats',
+            [LogController::class, 'stats']
+        )
+            ->name('logs.laravel.stats');
+
+
+
+        // import additional admin routes from separate file
+
+        Route::get('/import', function () {
+            return view('admin.import.index');
+        })->name('import.index');
+
+
+        Route::post(
+            '/students/import',
+            [StudentController::class, 'import']
+        )->name('students.import');
+
+        Route::post(
+            '/student-images/import',
+            [StudentImageController::class, 'importQuickPhotos']
+        )->name('quickphotos.import');
+
+        Route::post(
+            '/teachers/import',
+            [TeacherController::class, 'importTeachers']
+        )->name('teachers.import');
+
+        Route::post(
+            '/classes/import',
+            [StudentClassController::class, 'importClasses']
+        )->name('classes.import');
+
+        Route::post(
+            '/class-category-fees/import',
+            [ClassCategoryFeeController::class, 'importClassCategoryFees']
+        )->name('class-category-fees.import');
+
+        Route::post(
+            '/student-class-enrollments/import',
+            [StudentClassEnrollmentController::class, 'importEnrollments']
+        )->name('student-class-enrollments.import');
+
+        Route::post(
+            '/class-schedules/import',
+            [ClassScheduleController::class, 'importSchedules']
+        )->name('class-schedules.import');
+
+        Route::post(
+            '/student-attendances/import',
+            [StudentAttendanceController::class, 'importAttendances']
+        )->name('student-attendances.import');
+
+        Route::post(
+            '/payments/import',
+            [StudentPaymentController::class, 'importPayments']
+        )->name('payments.import');
     });
-
-    Route::prefix('payment-reason')->name('payment_reason.')->group(function () {
-        Route::get('/', [PaymentReasonController::class, 'indexPage'])->name('index');
-    });
-
-    Route::prefix('send-mail')->name('emails.')->group(function () {
-
-        // ✅ PDF download – MUST be first
-        Route::get('/pdf/{teacherId}/{yearMonth}', [EmailsController::class, 'downloadPaymentReport'])
-            ->where('yearMonth', '\d{4}-\d{2}');
-
-        // ✅ Send email – generic route AFTER
-        Route::get('/{teacherId}/{yearMonth}', [EmailsController::class, 'sendPaymentReport'])
-            ->where('yearMonth', '\d{4}-\d{2}');
-
-        Route::get('/test-email-connection', function () {
-            try {
-                Mail::raw('This is a test email from Student Management System', function ($message) {
-                    $message->to('isurufernando000@gmail.com')
-                        ->subject('Test Email Connection');
-                });
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Test email sent successfully!'
-                ]);
-            } catch (\Exception $e) {
-                return response()->json([
-                    'success' => false,
-                    'error' => $e->getMessage()
-                ], 500);
-            }
-        });
-    });
-
-    // routes/web.php
-    Route::prefix('receipt')->name('receipt.')->group(function () {
-        Route::get('/{id}', [ReceiptController::class, 'viewReceipt'])->name('view');
-        Route::get('/{id}/download', [ReceiptController::class, 'downloadReceipt'])->name('download');
-        Route::post('/{id}/print', [ReceiptController::class, 'thermalPrint'])->name('thermal-print');
-    });
-
-    Route::prefix('teacher-payment')->name('teacher_payment.')->group(function () {
-        Route::get('/', [TeacherPaymentsController::class, 'indexPage'])->name('index');
-        Route::get('/expenses', [TeacherPaymentsController::class, 'expensesPage'])->name('expenses');
-        Route::get('/pay/{teacherId}', [TeacherPaymentsController::class, 'paymentPage'])->name('salary');
-        Route::get('/history/{teacherId}', [TeacherPaymentsController::class, 'historyPage'])->name('history');
-        Route::get('/view/{teacherId}', [TeacherPaymentsController::class, 'viewPage'])->name('view');
-        Route::get('/salary-slip/{teacherId}/{yearMonth}', [TeacherPaymentsController::class, 'showSalarySlip'])->name('salary-slip-exact');
-    });
-
-    Route::prefix('institute-payment')->name('institute_payment.')->group(function () {
-        Route::get('/', [InstitutePaymentController::class, 'indexPage'])->name('index');
-        Route::get('/extra', [InstitutePaymentController::class, 'extraIncomePage'])->name('extra');
-        Route::get('/expenses', [InstitutePaymentController::class, 'expensesPage'])->name('expenses');
-        Route::get('/ledger', [InstitutePaymentController::class, 'ledgerPage'])->name('ledger');
-    });
-
-
-
-    // Other Pages
-    Route::get('/classes', [DashboardController::class, 'classes'])->name('classes');
-    Route::prefix('reports')->name('reports.')->group(function () {
-        Route::get('/', [ReportController::class, 'indexPage'])->name('index');
-        Route::get('/daily-pdf/{day}', [ReportController::class, 'downloadDailyReportPdf'])
-            ->name('daily.pdf');
-    });
-    Route::prefix('settings')->name('settings.')->group(function () {
-        Route::get('/', [SettingsCodeController::class, 'indexPage'])->name('index');
-    });
-
-    Route::prefix('teacher-ledger-summary')->name('teacher_ledger_summary.')->group(function () {
-        Route::get('/', [TeacherLedgerSummaryController::class, 'index'])->name('index');
-        Route::get('/export-excel', [TeacherLedgerSummaryController::class, 'exportExcel'])->name('export.excel');
-        Route::get('/export-pdf', [TeacherLedgerSummaryController::class, 'exportPDF'])->name('export.pdf');
-    });
-
-
-    /*=================================================
-    Permission  Sections
-    /*================================================= */
-
-    Route::prefix('permission')->name('permission.')->group(function () {
-        Route::get('/{userId}', [PageController::class, 'index'])->name('index');
-    });
-});
