@@ -10,7 +10,6 @@ class Payment extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'local_uuid',
         'student_id',
         'student_class_enrollment_id',
         'user_id',
