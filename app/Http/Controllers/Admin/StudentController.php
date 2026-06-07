@@ -20,7 +20,9 @@ use App\Models\StudentPortalLogin;
 use App\Models\TemporaryIdCard;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Hash;
+use Throwable;
 
 class StudentController extends Controller
 {
@@ -483,6 +485,99 @@ class StudentController extends Controller
                 'id' => $student->id,
                 'text' => "{$student->custom_id} - {$student->full_name}",
             ]);
+    }
+
+    public function studentTemporaryCardExpiredSoon()
+    {
+        try {
+
+            $today = Carbon::today();
+            $nextTenDays = Carbon::today()->addDays(10);
+
+            $students = Student::with('grade')
+                ->select(
+                    'custom_id',
+                    'temporary_qr_code',
+                    'temporary_qr_code_expire_date',
+                    'full_name',
+                    'guardian_mobile',
+                    'grade_id',
+                    'permanent_qr_active'
+                )
+                ->where('permanent_qr_active', 0)
+                ->whereNotNull('temporary_qr_code_expire_date')
+                ->whereDate(
+                    'temporary_qr_code_expire_date',
+                    '<=',
+                    $nextTenDays
+                )
+                ->orderBy('temporary_qr_code_expire_date')
+                ->get();
+
+            $pdf = Pdf::loadView(
+                'admin.pdf.student.temporary_card_expired_soon',
+                [
+                    'students' => $students,
+                    'today' => $today,
+                ]
+            );
+
+            return $pdf->download('temporary-card-expired-soon.pdf');
+        } catch (Throwable $e) {
+
+            Log::error('Temporary card report error', [
+                'message' => $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
+            ]);
+
+            return back()->with('error', 'Failed to generate report.');
+        }
+    }
+
+    public function allStudentDetailsPdf()
+    {
+        try {
+
+            $students = Student::select(
+                'id',
+                'custom_id',
+                'temporary_qr_code',
+                'full_name',
+                'guardian_mobile',
+                'grade_id',
+                'permanent_qr_active'
+            )
+                ->orderBy('id')
+                ->get();
+
+            $permanentQrCount = Student::where('permanent_qr_active', 1)->count();
+
+            $temporaryQrCount = Student::where('permanent_qr_active', 0)->count();
+
+            $pdf = Pdf::loadView(
+                'admin.pdf.student.all_students',
+                [
+                    'students' => $students,
+                    'permanentQrCount' => $permanentQrCount,
+                    'temporaryQrCount' => $temporaryQrCount,
+                ]
+            );
+
+            return $pdf->download('all-students-report.pdf');
+        } catch (Throwable $e) {
+
+            Log::error('Student PDF Error', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+
+            return back()->with(
+                'error',
+                'Failed to generate student report.'
+            );
+        }
     }
 
 

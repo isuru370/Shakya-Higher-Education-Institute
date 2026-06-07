@@ -240,6 +240,22 @@ Route::middleware([
             [StudentController::class, 'exportPdf']
         )->name('students.exportPdf');
 
+        /*
+|--------------------------------------------------------------------------
+| Student QR Reports
+|--------------------------------------------------------------------------
+*/
+
+        Route::get(
+            'students-export/all-students-pdf',
+            [StudentController::class, 'allStudentDetailsPdf']
+        )->name('students.allStudentDetailsPdf');
+
+        Route::get(
+            'students-export/temporary-card-expired-soon-pdf',
+            [StudentController::class, 'studentTemporaryCardExpiredSoon']
+        )->name('students.studentTemporaryCardExpiredSoon');
+
 
         /*
         |--------------------------------------------------------------------------
