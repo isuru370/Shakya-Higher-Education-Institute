@@ -5,852 +5,844 @@
 
 @section('content')
 
-<div class="students-page">
+    <div class="students-page">
 
-    <!-- TOP STATS -->
+        <!-- TOP STATS -->
 
-    <div class="row g-4 mb-4">
+        <div class="row g-4 mb-4">
 
-        <div class="col-xl-3 col-md-6">
+            <div class="col-xl-3 col-md-6">
 
-            <div class="stats-card">
+                <div class="stats-card">
 
-                <div class="stats-icon blue">
-                    <i class="bi bi-people-fill"></i>
+                    <div class="stats-icon blue">
+                        <i class="bi bi-people-fill"></i>
+                    </div>
+
+                    <div>
+
+                        <h3>{{ $students->total() }}</h3>
+
+                        <p>Total Students</p>
+
+                    </div>
+
                 </div>
+
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+
+                <div class="stats-card">
+
+                    <div class="stats-icon green">
+                        <i class="bi bi-check-circle-fill"></i>
+                    </div>
+
+                    <div>
+
+                        <h3>
+                            {{ \App\Models\Student::where('is_active', 1)->count() }}
+                        </h3>
+
+                        <p>Active Students</p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+
+                <div class="stats-card">
+
+                    <div class="stats-icon orange">
+                        <i class="bi bi-credit-card-fill"></i>
+                    </div>
+
+                    <div>
+
+                        <h3>
+                            {{ \App\Models\Student::where('admission', 1)->count() }}
+                        </h3>
+
+                        <p>Admission Paid</p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+
+                <div class="stats-card">
+
+                    <div class="stats-icon red">
+                        <i class="bi bi-x-circle-fill"></i>
+                    </div>
+
+                    <div>
+
+                        <h3>
+                            {{ \App\Models\Student::where('student_disable', 1)->count() }}
+                        </h3>
+
+                        <p>Disabled Students</p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- MAIN CARD -->
+
+        <div class="main-card">
+
+            <!-- HEADER -->
+
+            <div class="main-card-header">
 
                 <div>
 
-                    <h3>{{ $students->total() }}</h3>
+                    <h4>
+                        Students Management
+                    </h4>
 
-                    <p>Total Students</p>
+                    <p>
+                        Manage all student information and QR status
+                    </p>
+
+                </div>
+
+                <!-- BUTTONS -->
+
+                <div class="header-buttons">
+
+                    <a href="{{ route('admin.students.create') }}" class="btn btn-primary custom-btn">
+
+                        <i class="bi bi-plus-lg"></i>
+
+                        Add Student
+
+                    </a>
+
+                    <a href="{{ route('admin.students.exportExcel') }}" class="btn btn-success custom-btn">
+
+                        <i class="bi bi-file-earmark-excel-fill"></i>
+
+                        Excel
+
+                    </a>
+
+                    <a href="{{ route('admin.students.exportPdf') }}" class="btn btn-danger custom-btn">
+
+                        <i class="bi bi-file-earmark-pdf-fill"></i>
+
+                        PDF
+
+                    </a>
+
+                    <a href="{{ route('admin.students.allStudentDetailsPdf') }}" class="btn btn-info custom-btn">
+
+                        <i class="bi bi-qr-code"></i>
+
+                        QR Report
+
+                    </a>
+
+                    <a href="{{ route('admin.students.studentTemporaryCardExpiredSoon') }}"
+                        class="btn btn-warning custom-btn">
+
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+
+                        Expiring QR
+
+                    </a>
 
                 </div>
 
             </div>
 
-        </div>
+            <!-- SEARCH BAR -->
 
-        <div class="col-xl-3 col-md-6">
+            <div class="search-card">
 
-            <div class="stats-card">
+                <form method="GET" action="{{ route('admin.students.index') }}">
 
-                <div class="stats-icon green">
-                    <i class="bi bi-check-circle-fill"></i>
-                </div>
+                    <div class="row g-3">
 
-                <div>
+                        <div class="col-lg-5">
 
-                    <h3>
-                        {{ \App\Models\Student::where('is_active',1)->count() }}
-                    </h3>
+                            <div class="search-input-wrapper">
 
-                    <p>Active Students</p>
+                                <i class="bi bi-search"></i>
 
-                </div>
+                                <input type="text" name="search" class="form-control custom-input"
+                                    placeholder="Search name / mobile / QR / custom ID..." value="{{ request('search') }}">
 
-            </div>
+                            </div>
 
-        </div>
+                        </div>
 
-        <div class="col-xl-3 col-md-6">
+                        <div class="col-lg-3">
 
-            <div class="stats-card">
+                            <select name="grade_id" class="form-select custom-input">
 
-                <div class="stats-icon orange">
-                    <i class="bi bi-credit-card-fill"></i>
-                </div>
+                                <option value="">
+                                    All Grades
+                                </option>
 
-                <div>
+                                @foreach(\App\Models\Grade::orderBy('grade_name')->get() as $grade)
 
-                    <h3>
-                        {{ \App\Models\Student::where('admission',1)->count() }}
-                    </h3>
+                                    <option value="{{ $grade->id }}" {{ request('grade_id') == $grade->id ? 'selected' : '' }}>
 
-                    <p>Admission Paid</p>
+                                        {{ $grade->grade_name }}
 
-                </div>
+                                    </option>
 
-            </div>
+                                @endforeach
 
-        </div>
+                            </select>
 
-        <div class="col-xl-3 col-md-6">
+                        </div>
 
-            <div class="stats-card">
+                        <div class="col-lg-2">
 
-                <div class="stats-icon red">
-                    <i class="bi bi-x-circle-fill"></i>
-                </div>
+                            <button type="submit" class="btn btn-primary w-100 custom-btn">
 
-                <div>
+                                <i class="bi bi-search"></i>
 
-                    <h3>
-                        {{ \App\Models\Student::where('student_disable',1)->count() }}
-                    </h3>
+                                Search
 
-                    <p>Disabled Students</p>
+                            </button>
 
-                </div>
+                        </div>
 
-            </div>
+                        <div class="col-lg-2">
 
-        </div>
+                            <a href="{{ route('admin.students.index') }}" class="btn btn-light border w-100 custom-btn">
 
-    </div>
+                                Reset
 
-    <!-- MAIN CARD -->
-
-    <div class="main-card">
-
-        <!-- HEADER -->
-
-        <div class="main-card-header">
-
-            <div>
-
-                <h4>
-                    Students Management
-                </h4>
-
-                <p>
-                    Manage all student information and QR status
-                </p>
-
-            </div>
-
-            <!-- BUTTONS -->
-
-            <div class="header-buttons">
-
-                <a href="{{ route('admin.students.create') }}"
-                    class="btn btn-primary custom-btn">
-
-                    <i class="bi bi-plus-lg"></i>
-
-                    Add Student
-
-                </a>
-
-                <a href="{{ route('admin.students.exportExcel') }}"
-                    class="btn btn-success custom-btn">
-
-                    <i class="bi bi-file-earmark-excel-fill"></i>
-
-                    Excel
-
-                </a>
-
-                <a href="{{ route('admin.students.exportPdf') }}"
-                    class="btn btn-danger custom-btn">
-
-                    <i class="bi bi-file-earmark-pdf-fill"></i>
-
-                    PDF
-
-                </a>
-
-            </div>
-
-        </div>
-
-        <!-- SEARCH BAR -->
-
-        <div class="search-card">
-
-            <form method="GET"
-                action="{{ route('admin.students.index') }}">
-
-                <div class="row g-3">
-
-                    <div class="col-lg-5">
-
-                        <div class="search-input-wrapper">
-
-                            <i class="bi bi-search"></i>
-
-                            <input type="text"
-                                name="search"
-                                class="form-control custom-input"
-
-                                placeholder="Search name / mobile / QR / custom ID..."
-
-                                value="{{ request('search') }}">
+                            </a>
 
                         </div>
 
                     </div>
 
-                    <div class="col-lg-3">
+                </form>
 
-                        <select name="grade_id"
-                            class="form-select custom-input">
+            </div>
 
-                            <option value="">
-                                All Grades
-                            </option>
+            <!-- TABLE -->
 
-                            @foreach(\App\Models\Grade::orderBy('grade_name')->get() as $grade)
+            <div class="table-responsive">
 
-                            <option value="{{ $grade->id }}"
-                                {{ request('grade_id') == $grade->id ? 'selected' : '' }}>
+                <table class="table custom-table align-middle">
 
-                                {{ $grade->grade_name }}
+                    <thead>
 
-                            </option>
+                        <tr>
 
-                            @endforeach
+                            <th>#</th>
 
-                        </select>
+                            <th>Student</th>
 
-                    </div>
+                            <th>Contact</th>
 
-                    <div class="col-lg-2">
+                            <th>Grade</th>
 
-                        <button type="submit"
-                            class="btn btn-primary w-100 custom-btn">
+                            <th>QR Details</th>
 
-                            <i class="bi bi-search"></i>
+                            <th>Status</th>
 
-                            Search
+                            <th class="text-end">
+                                Actions
+                            </th>
 
-                        </button>
+                        </tr>
 
-                    </div>
+                    </thead>
 
-                    <div class="col-lg-2">
+                    <tbody>
 
-                        <a href="{{ route('admin.students.index') }}"
-                            class="btn btn-light border w-100 custom-btn">
+                        @forelse($students as $student)
 
-                            Reset
+                            @php
 
-                        </a>
+                                $expireDate =
+                                    $student->temporary_qr_code_expire_date;
 
-                    </div>
+                                $daysLeft =
+                                    $expireDate
+                                    ? now()->diffInDays($expireDate, false)
+                                    : null;
 
-                </div>
+                                $studentImage =
+                                    $student->img_url
+                                    ? asset('storage/' . $student->img_url)
+                                    : asset('images/default-student.png');
 
-            </form>
+                            @endphp
 
-        </div>
+                            <tr>
 
-        <!-- TABLE -->
+                                <td>
+                                    {{ $loop->iteration + ($students->currentPage() - 1) * $students->perPage() }}
+                                </td>
 
-        <div class="table-responsive">
+                                <!-- STUDENT -->
 
-            <table class="table custom-table align-middle">
+                                <td>
 
-                <thead>
+                                    <div class="d-flex align-items-center gap-3">
 
-                    <tr>
+                                        <img src="{{ $studentImage }}" class="student-avatar"
+                                            onerror="this.src='{{ asset('images/default-student.png') }}'">
 
-                        <th>#</th>
+                                        <div>
 
-                        <th>Student</th>
+                                            <div class="student-name">
+                                                {{ $student->full_name }}
+                                            </div>
 
-                        <th>Contact</th>
+                                            <small class="text-muted">
+                                                {{ $student->initial_name }}
+                                            </small>
 
-                        <th>Grade</th>
+                                        </div>
 
-                        <th>QR Details</th>
+                                    </div>
 
-                        <th>Status</th>
+                                </td>
 
-                        <th class="text-end">
-                            Actions
-                        </th>
+                                <!-- CONTACT -->
 
-                    </tr>
+                                <td>
 
-                </thead>
-
-                <tbody>
-
-                    @forelse($students as $student)
-
-                    @php
-
-                    $expireDate =
-                    $student->temporary_qr_code_expire_date;
-
-                    $daysLeft =
-                    $expireDate
-                    ? now()->diffInDays($expireDate, false)
-                    : null;
-
-                    $studentImage =
-                    $student->img_url
-                    ? asset('storage/' . $student->img_url)
-                    : asset('images/default-student.png');
-
-                    @endphp
-
-                    <tr>
-
-                        <td>
-                            {{ $loop->iteration + ($students->currentPage() - 1) * $students->perPage() }}
-                        </td>
-
-                        <!-- STUDENT -->
-
-                        <td>
-
-                            <div class="d-flex align-items-center gap-3">
-
-                                <img src="{{ $studentImage }}"
-                                    class="student-avatar"
-
-                                    onerror="this.src='{{ asset('images/default-student.png') }}'">
-
-                                <div>
-
-                                    <div class="student-name">
-                                        {{ $student->full_name }}
+                                    <div class="fw-semibold">
+                                        {{ $student->mobile }}
                                     </div>
 
                                     <small class="text-muted">
-                                        {{ $student->initial_name }}
+                                        Guardian:
+                                        {{ $student->guardian_mobile }}
                                     </small>
 
-                                </div>
+                                </td>
 
-                            </div>
+                                <!-- GRADE -->
 
-                        </td>
+                                <td>
 
-                        <!-- CONTACT -->
+                                    <div class="fw-semibold">
+                                        {{ $student->grade->grade_name ?? 'N/A' }}
+                                    </div>
 
-                        <td>
+                                    <span class="badge custom-badge bg-info-subtle text-info">
 
-                            <div class="fw-semibold">
-                                {{ $student->mobile }}
-                            </div>
+                                        {{ ucfirst($student->class_type) }}
 
-                            <small class="text-muted">
-                                Guardian:
-                                {{ $student->guardian_mobile }}
-                            </small>
+                                    </span>
 
-                        </td>
+                                </td>
 
-                        <!-- GRADE -->
+                                <!-- QR -->
 
-                        <td>
+                                <td>
 
-                            <div class="fw-semibold">
-                                {{ $student->grade->grade_name ?? 'N/A' }}
-                            </div>
+                                    @if($student->permanent_qr_active == 1)
 
-                            <span class="badge custom-badge bg-info-subtle text-info">
+                                        <span class="badge bg-success custom-badge mb-2">
+                                            Permanent QR
+                                        </span>
 
-                                {{ ucfirst($student->class_type) }}
+                                        <div class="fw-bold">
+                                            {{ $student->custom_id }}
+                                        </div>
 
-                            </span>
+                                    @else
 
-                        </td>
+                                        <span class="badge bg-warning text-dark custom-badge mb-2">
+                                            Temporary QR
+                                        </span>
 
-                        <!-- QR -->
+                                        <div class="fw-bold">
+                                            {{ $student->temporary_qr_code }}
+                                        </div>
 
-                        <td>
+                                        @if($daysLeft < 0)
 
-                            @if($student->permanent_qr_active == 1)
+                                            <small class="text-danger fw-semibold">
+                                                Expired
+                                            </small>
 
-                            <span class="badge bg-success custom-badge mb-2">
-                                Permanent QR
-                            </span>
+                                        @elseif($daysLeft == 0)
 
-                            <div class="fw-bold">
-                                {{ $student->custom_id }}
-                            </div>
+                                            <small class="text-warning fw-semibold">
+                                                Expires Today
+                                            </small>
 
-                            @else
+                                        @else
 
-                            <span class="badge bg-warning text-dark custom-badge mb-2">
-                                Temporary QR
-                            </span>
+                                            <small class="text-muted">
+                                                {{ $daysLeft }} days left
+                                            </small>
 
-                            <div class="fw-bold">
-                                {{ $student->temporary_qr_code }}
-                            </div>
+                                        @endif
 
-                            @if($daysLeft < 0)
+                                    @endif
 
-                            <small class="text-danger fw-semibold">
-                                Expired
-                            </small>
+                                </td>
 
-                            @elseif($daysLeft == 0)
+                                <!-- STATUS -->
 
-                            <small class="text-warning fw-semibold">
-                                Expires Today
-                            </small>
+                                <td>
 
-                            @else
+                                    @if($student->student_disable)
 
-                            <small class="text-muted">
-                                {{ $daysLeft }} days left
-                            </small>
+                                        <span class="badge bg-danger custom-badge">
+                                            Disabled
+                                        </span>
 
-                            @endif
+                                    @elseif($student->is_active)
 
-                            @endif
+                                        <span class="badge bg-success custom-badge">
+                                            Active
+                                        </span>
 
-                        </td>
+                                    @else
 
-                        <!-- STATUS -->
+                                        <span class="badge bg-secondary custom-badge">
+                                            Inactive
+                                        </span>
 
-                        <td>
+                                    @endif
 
-                            @if($student->student_disable)
+                                    <br>
 
-                            <span class="badge bg-danger custom-badge">
-                                Disabled
-                            </span>
+                                    @if($student->admission)
 
-                            @elseif($student->is_active)
+                                        <span class="badge bg-primary custom-badge mt-2">
+                                            Admission Paid
+                                        </span>
 
-                            <span class="badge bg-success custom-badge">
-                                Active
-                            </span>
+                                    @endif
 
-                            @else
+                                </td>
 
-                            <span class="badge bg-secondary custom-badge">
-                                Inactive
-                            </span>
+                                <!-- ACTIONS -->
 
-                            @endif
+                                <td class="text-end">
 
-                            <br>
+                                    <div class="action-buttons">
 
-                            @if($student->admission)
+                                        <a href="{{ route('admin.students.show', $student) }}" class="action-btn view-btn">
 
-                            <span class="badge bg-primary custom-badge mt-2">
-                                Admission Paid
-                            </span>
+                                            <i class="bi bi-eye-fill"></i>
 
-                            @endif
+                                        </a>
 
-                        </td>
+                                        <a href="{{ route('admin.students.edit', $student) }}" class="action-btn edit-btn">
 
-                        <!-- ACTIONS -->
+                                            <i class="bi bi-pencil-fill"></i>
 
-                        <td class="text-end">
+                                        </a>
 
-                            <div class="action-buttons">
+                                        <form method="POST" action="{{ route('admin.students.toggleActive', $student) }}">
 
-                                <a href="{{ route('admin.students.show', $student) }}"
-                                    class="action-btn view-btn">
+                                            @csrf
+                                            @method('PATCH')
 
-                                    <i class="bi bi-eye-fill"></i>
+                                            <button type="submit" class="action-btn toggle-btn">
 
-                                </a>
+                                                <i class="bi bi-arrow-repeat"></i>
 
-                                <a href="{{ route('admin.students.edit', $student) }}"
-                                    class="action-btn edit-btn">
+                                            </button>
 
-                                    <i class="bi bi-pencil-fill"></i>
+                                        </form>
 
-                                </a>
+                                        <form method="POST" action="{{ route('admin.students.destroy', $student) }}"
+                                            onsubmit="return confirm('Delete student?')">
 
-                                <form method="POST"
-                                    action="{{ route('admin.students.toggleActive', $student) }}">
+                                            @csrf
+                                            @method('DELETE')
 
-                                    @csrf
-                                    @method('PATCH')
+                                            <button type="submit" class="action-btn delete-btn">
 
-                                    <button type="submit"
-                                        class="action-btn toggle-btn">
+                                                <i class="bi bi-trash-fill"></i>
 
-                                        <i class="bi bi-arrow-repeat"></i>
+                                            </button>
 
-                                    </button>
+                                        </form>
 
-                                </form>
+                                    </div>
 
-                                <form method="POST"
-                                    action="{{ route('admin.students.destroy', $student) }}"
+                                </td>
 
-                                    onsubmit="return confirm('Delete student?')">
+                            </tr>
 
-                                    @csrf
-                                    @method('DELETE')
+                        @empty
 
-                                    <button type="submit"
-                                        class="action-btn delete-btn">
+                            <tr>
 
-                                        <i class="bi bi-trash-fill"></i>
+                                <td colspan="7" class="text-center py-5 text-muted">
 
-                                    </button>
+                                    No students found
 
-                                </form>
+                                </td>
 
-                            </div>
+                            </tr>
 
-                        </td>
+                        @endforelse
 
-                    </tr>
+                    </tbody>
 
-                    @empty
+                </table>
 
-                    <tr>
+            </div>
 
-                        <td colspan="7"
-                            class="text-center py-5 text-muted">
+            <!-- PAGINATION -->
 
-                            No students found
+            <div class="mt-4">
 
-                        </td>
+                {{ $students->links() }}
 
-                    </tr>
-
-                    @endforelse
-
-                </tbody>
-
-            </table>
-
-        </div>
-
-        <!-- PAGINATION -->
-
-        <div class="mt-4">
-
-            {{ $students->links() }}
+            </div>
 
         </div>
 
     </div>
 
-</div>
-
 @endsection
 
 @push('styles')
 
-<style>
+    <style>
+        /* PAGE */
 
-    /* PAGE */
+        .students-page {
+            animation: fadeIn 0.4s ease;
+        }
 
-    .students-page {
-        animation: fadeIn 0.4s ease;
-    }
+        /* STATS */
 
-    /* STATS */
+        .stats-card {
 
-    .stats-card {
+            background: white;
 
-        background: white;
+            border-radius: 24px;
 
-        border-radius: 24px;
+            padding: 1.5rem;
 
-        padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
 
-        display: flex;
-        align-items: center;
-        gap: 1rem;
+            box-shadow:
+                0 10px 30px rgba(0, 0, 0, 0.04);
 
-        box-shadow:
-            0 10px 30px rgba(0,0,0,0.04);
+            border:
+                1px solid #eef2f7;
+        }
 
-        border:
-            1px solid #eef2f7;
-    }
+        .stats-icon {
 
-    .stats-icon {
+            width: 60px;
+            height: 60px;
 
-        width: 60px;
-        height: 60px;
+            border-radius: 18px;
 
-        border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
 
-        display: flex;
-        align-items: center;
-        justify-content: center;
+            font-size: 1.5rem;
 
-        font-size: 1.5rem;
+            color: white;
+        }
 
-        color: white;
-    }
+        .blue {
+            background: linear-gradient(135deg, #2563eb, #3b82f6);
+        }
 
-    .blue {
-        background: linear-gradient(135deg,#2563eb,#3b82f6);
-    }
+        .green {
+            background: linear-gradient(135deg, #10b981, #34d399);
+        }
 
-    .green {
-        background: linear-gradient(135deg,#10b981,#34d399);
-    }
+        .orange {
+            background: linear-gradient(135deg, #f59e0b, #fbbf24);
+        }
 
-    .orange {
-        background: linear-gradient(135deg,#f59e0b,#fbbf24);
-    }
+        .red {
+            background: linear-gradient(135deg, #ef4444, #f87171);
+        }
 
-    .red {
-        background: linear-gradient(135deg,#ef4444,#f87171);
-    }
+        .stats-card h3 {
 
-    .stats-card h3 {
+            margin: 0;
 
-        margin: 0;
+            font-size: 1.6rem;
+            font-weight: 700;
+        }
 
-        font-size: 1.6rem;
-        font-weight: 700;
-    }
+        .stats-card p {
 
-    .stats-card p {
+            margin: 0;
 
-        margin: 0;
+            color: #64748b;
+        }
 
-        color: #64748b;
-    }
+        /* MAIN CARD */
 
-    /* MAIN CARD */
+        .main-card {
 
-    .main-card {
+            background: white;
 
-        background: white;
+            border-radius: 28px;
 
-        border-radius: 28px;
+            padding: 1.5rem;
 
-        padding: 1.5rem;
-
-        box-shadow:
-            0 10px 30px rgba(0,0,0,0.05);
-    }
-
-    .main-card-header {
-
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-
-        margin-bottom: 1.5rem;
-
-        flex-wrap: wrap;
-
-        gap: 1rem;
-    }
-
-    .main-card-header h4 {
-
-        margin: 0;
-
-        font-weight: 700;
-    }
-
-    .main-card-header p {
-
-        margin: 0;
-
-        color: #64748b;
-    }
-
-    /* BUTTONS */
-
-    .header-buttons {
-
-        display: flex;
-        gap: 0.7rem;
-
-        flex-wrap: wrap;
-    }
-
-    .custom-btn {
-
-        border-radius: 14px;
-
-        padding: 0.7rem 1.2rem;
-
-        font-weight: 600;
-
-        border: none;
-    }
-
-    /* SEARCH */
-
-    .search-card {
-
-        background: #f8fafc;
-
-        border-radius: 20px;
-
-        padding: 1rem;
-
-        margin-bottom: 1.5rem;
-    }
-
-    .search-input-wrapper {
-
-        position: relative;
-    }
-
-    .search-input-wrapper i {
-
-        position: absolute;
-
-        top: 50%;
-        left: 15px;
-
-        transform: translateY(-50%);
-
-        color: #64748b;
-    }
-
-    .custom-input {
-
-        border-radius: 14px !important;
-
-        border: 1px solid #e2e8f0;
-
-        min-height: 48px;
-
-        padding-left: 42px;
-    }
-
-    /* TABLE */
-
-    .custom-table thead th {
-
-        border: none;
-
-        background: #f8fafc;
-
-        color: #475569;
-
-        font-size: 0.82rem;
-
-        text-transform: uppercase;
-
-        padding: 1rem;
-    }
-
-    .custom-table tbody tr {
-
-        transition: 0.2s ease;
-    }
-
-    .custom-table tbody tr:hover {
-
-        background: #f8fafc;
-    }
-
-    .custom-table tbody td {
-
-        padding: 1rem;
-
-        border-color: #f1f5f9;
-    }
-
-    /* AVATAR */
-
-    .student-avatar {
-
-        width: 55px;
-        height: 55px;
-
-        border-radius: 50%;
-
-        object-fit: cover;
-
-        border: 3px solid #e2e8f0;
-    }
-
-    .student-name {
-
-        font-weight: 700;
-    }
-
-    /* BADGES */
-
-    .custom-badge {
-
-        border-radius: 10px;
-
-        padding: 0.5rem 0.7rem;
-
-        font-size: 0.75rem;
-    }
-
-    /* ACTIONS */
-
-    .action-buttons {
-
-        display: flex;
-        justify-content: flex-end;
-        gap: 0.5rem;
-
-        flex-wrap: wrap;
-    }
-
-    .action-btn {
-
-        width: 38px;
-        height: 38px;
-
-        border-radius: 12px;
-
-        border: none;
-
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        text-decoration: none;
-
-        transition: 0.2s ease;
-    }
-
-    .action-btn:hover {
-
-        transform: translateY(-2px);
-    }
-
-    .view-btn {
-
-        background: #eff6ff;
-        color: #2563eb;
-    }
-
-    .edit-btn {
-
-        background: #fef3c7;
-        color: #d97706;
-    }
-
-    .toggle-btn {
-
-        background: #ecfdf5;
-        color: #10b981;
-    }
-
-    .delete-btn {
-
-        background: #fef2f2;
-        color: #ef4444;
-    }
-
-    /* MOBILE */
-
-    @media(max-width: 768px) {
+            box-shadow:
+                0 10px 30px rgba(0, 0, 0, 0.05);
+        }
 
         .main-card-header {
 
-            flex-direction: column;
-            align-items: stretch;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            margin-bottom: 1.5rem;
+
+            flex-wrap: wrap;
+
+            gap: 1rem;
         }
+
+        .main-card-header h4 {
+
+            margin: 0;
+
+            font-weight: 700;
+        }
+
+        .main-card-header p {
+
+            margin: 0;
+
+            color: #64748b;
+        }
+
+        /* BUTTONS */
 
         .header-buttons {
 
-            width: 100%;
+            display: flex;
+            gap: 0.7rem;
+
+            flex-wrap: wrap;
         }
 
-        .header-buttons a {
+        .custom-btn {
 
-            flex: 1;
+            border-radius: 14px;
+
+            padding: 0.7rem 1.2rem;
+
+            font-weight: 600;
+
+            border: none;
         }
-    }
 
-</style>
+        /* SEARCH */
+
+        .search-card {
+
+            background: #f8fafc;
+
+            border-radius: 20px;
+
+            padding: 1rem;
+
+            margin-bottom: 1.5rem;
+        }
+
+        .search-input-wrapper {
+
+            position: relative;
+        }
+
+        .search-input-wrapper i {
+
+            position: absolute;
+
+            top: 50%;
+            left: 15px;
+
+            transform: translateY(-50%);
+
+            color: #64748b;
+        }
+
+        .custom-input {
+
+            border-radius: 14px !important;
+
+            border: 1px solid #e2e8f0;
+
+            min-height: 48px;
+
+            padding-left: 42px;
+        }
+
+        /* TABLE */
+
+        .custom-table thead th {
+
+            border: none;
+
+            background: #f8fafc;
+
+            color: #475569;
+
+            font-size: 0.82rem;
+
+            text-transform: uppercase;
+
+            padding: 1rem;
+        }
+
+        .custom-table tbody tr {
+
+            transition: 0.2s ease;
+        }
+
+        .custom-table tbody tr:hover {
+
+            background: #f8fafc;
+        }
+
+        .custom-table tbody td {
+
+            padding: 1rem;
+
+            border-color: #f1f5f9;
+        }
+
+        /* AVATAR */
+
+        .student-avatar {
+
+            width: 55px;
+            height: 55px;
+
+            border-radius: 50%;
+
+            object-fit: cover;
+
+            border: 3px solid #e2e8f0;
+        }
+
+        .student-name {
+
+            font-weight: 700;
+        }
+
+        /* BADGES */
+
+        .custom-badge {
+
+            border-radius: 10px;
+
+            padding: 0.5rem 0.7rem;
+
+            font-size: 0.75rem;
+        }
+
+        /* ACTIONS */
+
+        .action-buttons {
+
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+
+            width: 38px;
+            height: 38px;
+
+            border-radius: 12px;
+
+            border: none;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            text-decoration: none;
+
+            transition: 0.2s ease;
+        }
+
+        .action-btn:hover {
+
+            transform: translateY(-2px);
+        }
+
+        .view-btn {
+
+            background: #eff6ff;
+            color: #2563eb;
+        }
+
+        .edit-btn {
+
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .toggle-btn {
+
+            background: #ecfdf5;
+            color: #10b981;
+        }
+
+        .delete-btn {
+
+            background: #fef2f2;
+            color: #ef4444;
+        }
+
+        /* MOBILE */
+
+        @media(max-width: 768px) {
+
+            .main-card-header {
+
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .header-buttons {
+
+                width: 100%;
+            }
+
+            .header-buttons a {
+
+                flex: 1;
+            }
+        }
+    </style>
 
 @endpush

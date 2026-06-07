@@ -324,8 +324,8 @@
         <!-- logo container – your red logo will pop against the clean background -->
         <div class="logo-container">
             <!-- using asset helper – logo.png is assumed to be red -->
-            <img src="{{ asset('uploads/logo/logo.png') }}" alt="YES Higher Education red logo" class="logo"
-                onerror="this.src='https://placehold.co/320x120/b91c1c/white?text=YES+Logo&font=inter';">
+            <img src="{{ asset('uploads/logo/logo.png') }}" alt="SHAKYA HIGHER EDUCATION" class="logo"
+                onerror="this.src='https://placehold.co/320x120/b91c1c/white?text=SHAKYA+Logo&font=inter';">
         </div>
 
         <h1>
