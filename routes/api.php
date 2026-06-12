@@ -1,10 +1,11 @@
 <?php
 
+use App\Http\Controllers\API\AdmissionPaymentController;
 use Illuminate\Support\Facades\Route;
-
 use App\Http\Controllers\API\Auth\LoginController;
 use App\Http\Controllers\API\ClassScheduleController;
 use App\Http\Controllers\API\GradeController;
+use App\Http\Controllers\Api\InstituteHallController;
 use App\Http\Controllers\API\MobileDashboardController;
 use App\Http\Controllers\API\QuickPhotoController;
 use App\Http\Controllers\API\StudentAttendanceController;
@@ -161,6 +162,27 @@ Route::middleware([
     )->name('api.student-payments.store');
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | Student Admission Payment Delete
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get(
+        '/admission',
+        [AdmissionPaymentController::class, 'fetchAdmission']
+    )->name('api.admission-payment.fetch-admission');
+
+    Route::get(
+        '/admission-payments',
+        [AdmissionPaymentController::class, 'fetchAdmissionPayment']
+    )->name('api.admission-payment.fetch-admission-payments');
+
+    Route::post(
+        '/admission-payments/store',
+        [AdmissionPaymentController::class, 'storeAdmissionPayment']
+    )->name('api.admission-payment.store-admission-payment');
+
 
     /*
     |--------------------------------------------------------------------------
@@ -263,7 +285,42 @@ Route::middleware([
     Route::get(
         '/class-schedule/today-class',
         [ClassScheduleController::class, 'todayClasses']
-    )->name('api.student-class-enrollments.today-class');
+    );
+
+    Route::get(
+        '/class-schedule/ongoing-class',
+        [ClassScheduleController::class, 'fetchOngoingClass']
+    );
+
+    Route::get(
+        '/class-schedule/category',
+        [ClassScheduleController::class, 'fetchClassCategory']
+    );
+
+    Route::get(
+        '/class-schedule/fetch',
+        [ClassScheduleController::class, 'fetchClassSchedule']
+    );
+
+    Route::post(
+        '/class-schedule/store',
+        [ClassScheduleController::class, 'storeAddNewDay']
+    );
+
+    Route::put(
+        '/class-schedule/update',
+        [ClassScheduleController::class, 'updateClassSchedule']
+    );
+
+    Route::patch(
+        '/class-schedule/cancel',
+        [ClassScheduleController::class, 'classCancel']
+    );
+
+    Route::get(
+        '/institute-halls',
+        [InstituteHallController::class, 'fetchInstituteHall']
+    );
 
 
     Route::get(

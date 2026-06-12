@@ -21,6 +21,7 @@ class TodayAttendanceController extends Controller
         $today = Carbon::today();
 
         $enrollments = StudentClassEnrollment::with('student')
+            ->where('is_active',true)
             ->where('student_class_id', $schedule->student_class_id)
             ->where('class_category_fee_id', $schedule->class_category_fee_id)
             ->get();

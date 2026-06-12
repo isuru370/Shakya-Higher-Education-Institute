@@ -34,7 +34,7 @@ class StudentAttendanceController extends Controller
                 return $result['response'];
             }
 
-           // $this->sendSuccessSmsIfAvailable($result);
+            $this->sendSuccessSmsIfAvailable($result);
 
             return $this->attendanceSuccessResponse($result);
         } catch (Throwable $e) {

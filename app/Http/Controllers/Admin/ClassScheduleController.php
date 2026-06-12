@@ -3,23 +3,30 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Imports\ClassSchedulesImport;
 use App\Models\ClassCategoryFee;
 use App\Models\ClassHall;
 use App\Models\ClassSchedule;
 use App\Models\ClassSchedulePattern;
 use App\Models\StudentClass;
+use App\Services\ClassScheduleService;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Validation\Rule;
+use Throwable;
 
 class ClassScheduleController extends Controller
 {
+    protected ClassScheduleService $classScheduleService;
+
+    public function __construct(
+        ClassScheduleService $scheduleService
+    ) {
+        $this->classScheduleService = $scheduleService;
+    }
     public function index(Request $request)
     {
         $perPage = (int) $request->input('per_page', 10);
@@ -165,6 +172,7 @@ class ClassScheduleController extends Controller
         try {
             DB::transaction(function () use ($validated, $request, $categoryFee) {
                 if ($validated['schedule_type'] === 'single') {
+
                     $date = Carbon::parse($validated['class_date']);
                     $dayOfWeek = strtolower($date->format('l'));
 
@@ -180,7 +188,7 @@ class ClassScheduleController extends Controller
                         throw new Exception('This single schedule already exists.');
                     }
 
-                    ClassSchedule::create([
+                    $schedule = ClassSchedule::create([
                         'class_schedule_pattern_id' => null,
                         'student_class_id' => $validated['student_class_id'],
                         'class_category_fee_id' => $validated['class_category_fee_id'],
@@ -246,6 +254,29 @@ class ClassScheduleController extends Controller
                     $date->addDay();
                 }
             });
+
+            // if ($validated['schedule_type'] === 'single') {
+
+            //     try {
+
+            //         $this->classScheduleService->sendClassScheduleSms(
+            //             [
+            //                 'class_category_fee_id' => $validated['class_category_fee_id'],
+            //                 'class_hall_id' => $validated['class_hall_id'] ?? null,
+            //                 'class_date' => $validated['class_date'],
+            //                 'start_time' => $validated['start_time'],
+            //                 'end_time' => $validated['end_time'],
+            //             ],
+            //             'created'
+            //         );
+            //     } catch (Throwable $e) {
+
+            //         Log::error('Class schedule SMS dispatch failed', [
+            //             'student_class_id' => $validated['student_class_id'],
+            //             'error' => $e->getMessage(),
+            //         ]);
+            //     }
+            // }
 
             return redirect()
                 ->route('admin.class-schedules.index', [
@@ -456,6 +487,29 @@ class ClassScheduleController extends Controller
             'note' => $validated['note'] ?? null,
         ]);
 
+        $smsData = [
+            'class_category_fee_id' => $validated['class_category_fee_id'],
+            'class_hall_id' => $validated['class_hall_id'] ?? null,
+            'class_date' => $validated['class_date'],
+            'start_time' => $validated['start_time'],
+            'end_time' => $validated['end_time'],
+        ];
+
+        // try {
+
+        //     $this->classScheduleService->sendClassScheduleSms(
+        //         $smsData,
+        //         'updated'
+        //     );
+        // } catch (Throwable $e) {
+
+        //     Log::error('Class schedule update SMS dispatch failed', [
+        //         'schedule_id' => $classSchedule->id,
+        //         'student_class_id' => $validated['student_class_id'],
+        //         'error' => $e->getMessage(),
+        //     ]);
+        // }
+
         return redirect()
             ->route('admin.class-schedules.categorySchedules', [
                 'student_class_id' => $validated['student_class_id'],
@@ -525,11 +579,37 @@ class ClassScheduleController extends Controller
             return back()->with('error', 'This schedule is already cancelled.');
         }
 
-        $classSchedule->cancel(Auth::id(), $validated['cancel_reason']);
+        $classSchedule->cancel(
+            Auth::id(),
+            $validated['cancel_reason']
+        );
 
-        return back()->with('success', 'Schedule cancelled successfully.');
+        // try {
+
+        //     $this->classScheduleService->sendClassScheduleSms(
+        //         [
+        //             'class_category_fee_id' => $classSchedule->class_category_fee_id,
+        //             'class_hall_id' => $classSchedule->class_hall_id,
+        //             'class_date' => $classSchedule->class_date,
+        //             'start_time' => $classSchedule->start_time,
+        //             'end_time' => $classSchedule->end_time,
+        //             'cancel_reason' => $validated['cancel_reason'],
+        //         ],
+        //         'cancelled'
+        //     );
+        // } catch (Throwable $e) {
+
+        //     Log::error('Class schedule cancel SMS dispatch failed', [
+        //         'schedule_id' => $classSchedule->id,
+        //         'error' => $e->getMessage(),
+        //     ]);
+        // }
+
+        return back()->with(
+            'success',
+            'Schedule cancelled successfully.'
+        );
     }
-
     public function todayClasses(Request $request)
     {
         $today = Carbon::today();
@@ -700,22 +780,4 @@ class ClassScheduleController extends Controller
 
         return Carbon::parse($classSchedule->class_date)->lte(today());
     }
-
-
-    public function importSchedules(Request $request)
-{
-    $request->validate([
-        'file' => 'required|mimes:csv,txt'
-    ]);
-
-    Excel::import(
-        new ClassSchedulesImport(),
-        $request->file('file')
-    );
-
-    return back()->with(
-        'success',
-        'Schedules imported successfully.'
-    );
-}
 }

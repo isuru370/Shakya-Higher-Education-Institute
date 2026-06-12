@@ -12,7 +12,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 use App\Exports\StudentsExport;
-use App\Imports\StudentsImport;
 use App\Models\Admission;
 use App\Models\AdmissionPayment;
 use App\Models\StudentIdCard;
@@ -464,28 +463,6 @@ class StudentController extends Controller
     }
 
     // StudentController
-    public function search(Request $request)
-    {
-        $q = trim($request->input('q', ''));
-
-        return Student::query()
-            ->where('is_active', true)
-            ->when($q !== '', function ($query) use ($q) {
-                $query->where(function ($sub) use ($q) {
-                    $sub->where('custom_id', 'like', "%{$q}%")
-                        ->orWhere('temporary_qr_code', 'like', "%{$q}%")
-                        ->orWhere('full_name', 'like', "%{$q}%")
-                        ->orWhere('initial_name', 'like', "%{$q}%");
-                });
-            })
-            ->orderBy('full_name')
-            ->limit(20)
-            ->get()
-            ->map(fn($student) => [
-                'id' => $student->id,
-                'text' => "{$student->custom_id} - {$student->full_name}",
-            ]);
-    }
 
     public function studentTemporaryCardExpiredSoon()
     {
@@ -579,24 +556,26 @@ class StudentController extends Controller
             );
         }
     }
-
-
-    // import File
-
-    public function import(Request $request)
+    public function search(Request $request)
     {
-        $request->validate([
-            'file' => 'required|mimes:csv,txt'
-        ]);
+        $q = trim($request->input('q', ''));
 
-        Excel::import(
-            new StudentsImport,
-            $request->file('file')
-        );
-
-        return back()->with(
-            'success',
-            'Students imported successfully'
-        );
+        return Student::query()
+            ->where('is_active', true)
+            ->when($q !== '', function ($query) use ($q) {
+                $query->where(function ($sub) use ($q) {
+                    $sub->where('custom_id', 'like', "%{$q}%")
+                        ->orWhere('temporary_qr_code', 'like', "%{$q}%")
+                        ->orWhere('full_name', 'like', "%{$q}%")
+                        ->orWhere('initial_name', 'like', "%{$q}%");
+                });
+            })
+            ->orderBy('full_name')
+            ->limit(20)
+            ->get()
+            ->map(fn($student) => [
+                'id' => $student->id,
+                'text' => "{$student->custom_id} - {$student->full_name}",
+            ]);
     }
 }

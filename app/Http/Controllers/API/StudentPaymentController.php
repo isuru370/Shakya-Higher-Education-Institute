@@ -197,24 +197,22 @@ class StudentPaymentController extends Controller
                 return $results;
             });
 
-            // foreach ($createdPayments as $payment) {
-            //     $guardianMobile = $payment->student?->guardian_mobile;
+            foreach ($createdPayments as $payment) {
+                $guardianMobile = $payment->student?->guardian_mobile;
 
-            //     if ($guardianMobile) {
-            //         $smsMessage = sprintf(
-            //             'Payment received. Student: %s, Class: %s, Category: %s, Grade: %s, Amount: Rs. %s, Month: %s, Receipt: %s. Thank you.',
-            //             $payment->student?->initial_name ?? 'Student',
-            //             $payment->enrollment?->studentClass?->class_name ?? 'N/A',
-            //             $payment->enrollment?->classCategoryFee?->category?->category_name ?? 'N/A',
-            //             $payment->enrollment?->studentClass?->grade?->grade_name ?? 'N/A',
-            //             number_format((float) $payment->amount, 2),
-            //             Carbon::parse($payment->payment_month)->format('Y-m'),
-            //             $payment->receipt_number ?? '-'
-            //         );
+                if ($guardianMobile) {
+                    $smsMessage = sprintf(
+                        'Paid: %s, %s/%s, Rs.%s, %s.',
+                        $payment->student?->initial_name ?? 'Student',
+                        $payment->enrollment?->studentClass?->class_name ?? 'N/A',
+                        $payment->enrollment?->classCategoryFee?->category?->category_name ?? 'N/A',
+                        number_format((float) $payment->amount, 0),
+                        Carbon::parse($payment->payment_month)->format('M Y')
+                    );
 
-            //         SendPaymentSms::dispatch($guardianMobile, $smsMessage);
-            //     }
-            // }
+                    SendPaymentSms::dispatch($guardianMobile, $smsMessage);
+                }
+            }
 
             return response()->json([
                 'status' => 'success',
