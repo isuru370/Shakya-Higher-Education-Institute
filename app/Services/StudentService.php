@@ -90,7 +90,7 @@ class StudentService
     {
         $plainPassword = $this->generateStudentPassword(
             $student->initial_name,
-            $student->mobile
+            $student->guardian_mobile
         );
 
         StudentPortalLogin::create([
