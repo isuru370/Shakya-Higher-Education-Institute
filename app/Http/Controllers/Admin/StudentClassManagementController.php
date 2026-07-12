@@ -28,7 +28,7 @@ class StudentClassManagementController extends Controller
         try {
             // Get tmp_id from request (GET or POST)
             $tmpId = $request->input('tmp_id');
-            
+
             // If GET request with no tmp_id, redirect to index
             if ($request->isMethod('get') && !$tmpId) {
                 return redirect()->route('admin.student-class-management.index')
@@ -51,11 +51,11 @@ class StudentClassManagementController extends Controller
                     ->withInput();
             }
 
-            // Search student
+            // Search student - ✅ With grade relationship
             $student = Student::where('temporary_qr_code', $tmpId)
                 ->with([
                     'enrollments' => function ($query) {
-                        $query->with(['studentClass', 'classCategoryFee.category']);
+                        $query->with(['studentClass.grade', 'classCategoryFee.category']);
                     }
                 ])
                 ->first();
@@ -72,6 +72,7 @@ class StudentClassManagementController extends Controller
                     'class_name' => $enrollment->studentClass?->class_name ?? 'N/A',
                     'class_type' => $enrollment->studentClass?->class_type ?? 'N/A',
                     'medium' => $enrollment->studentClass?->medium ?? 'N/A',
+                    'grade_name' => $enrollment->studentClass?->grade?->grade_name ?? 'N/A', // ✅ Added
                     'category_name' => $enrollment->classCategoryFee?->category?->category_name ?? 'N/A',
                     'fee' => $enrollment->classCategoryFee?->fee ?? 0,
                     'is_active' => $enrollment->is_active,
@@ -86,7 +87,6 @@ class StudentClassManagementController extends Controller
             });
 
             return view('admin.student-class-management.show', compact('student', 'classes'));
-
         } catch (\Exception $e) {
             return redirect()->route('admin.student-class-management.index')
                 ->with('error', 'An error occurred: ' . $e->getMessage());
@@ -119,11 +119,10 @@ class StudentClassManagementController extends Controller
                     ->with('error', 'Class enrollment not found');
             }
 
-            // ✅ Get student ID before updating
             $studentId = $enrollment->student_id;
 
             $enrollment->is_active = $request->is_active;
-            
+
             if (!$request->is_active) {
                 $enrollment->left_at = $request->left_at ?? now();
             } else {
@@ -140,10 +139,8 @@ class StudentClassManagementController extends Controller
                 ? 'Class activated successfully'
                 : 'Class deactivated successfully';
 
-            // ✅ Redirect to show page with student ID (not back)
             return redirect()->route('admin.student-class-management.show', $studentId)
                 ->with('success', $message);
-
         } catch (\Exception $e) {
             return redirect()->back()
                 ->with('error', 'An error occurred while updating class status: ' . $e->getMessage());
@@ -160,14 +157,12 @@ class StudentClassManagementController extends Controller
             return redirect()->back()->with('error', 'Enrollment not found');
         }
 
-        // ✅ Get student ID before updating
         $studentId = $enrollment->student_id;
 
         $enrollment->is_active = false;
         $enrollment->left_at = now();
         $enrollment->save();
 
-        // ✅ Redirect to show page with student ID (not back)
         return redirect()->route('admin.student-class-management.show', $studentId)
             ->with('success', 'Class deactivated successfully');
     }
@@ -182,14 +177,12 @@ class StudentClassManagementController extends Controller
             return redirect()->back()->with('error', 'Enrollment not found');
         }
 
-        // ✅ Get student ID before updating
         $studentId = $enrollment->student_id;
 
         $enrollment->is_active = true;
         $enrollment->left_at = null;
         $enrollment->save();
 
-        // ✅ Redirect to show page with student ID (not back)
         return redirect()->route('admin.student-class-management.show', $studentId)
             ->with('success', 'Class activated successfully');
     }
@@ -215,7 +208,6 @@ class StudentClassManagementController extends Controller
                     ->with('error', 'Student not found');
             }
 
-            // Student එකේ සියලුම enrollments update කරනවා
             $updated = StudentClassEnrollment::where('student_id', $studentId)
                 ->update([
                     'is_active' => $request->is_active,
@@ -226,10 +218,8 @@ class StudentClassManagementController extends Controller
                 ? 'All classes activated successfully'
                 : 'All classes deactivated successfully';
 
-            // ✅ Redirect to show page with student ID (not back)
             return redirect()->route('admin.student-class-management.show', $studentId)
                 ->with('success', $message . ' (' . $updated . ' classes updated)');
-
         } catch (\Exception $e) {
             return redirect()->route('admin.student-class-management.show', $studentId)
                 ->with('error', 'An error occurred: ' . $e->getMessage());
@@ -277,7 +267,6 @@ class StudentClassManagementController extends Controller
                     ->withInput();
             }
 
-            // ඒ student එකට ඒ class එක දැනටමත් assign වෙලාද කියලා check කරනවා
             $existing = StudentClassEnrollment::where('student_id', $request->student_id)
                 ->where('student_class_id', $request->student_class_id)
                 ->first();
@@ -288,7 +277,6 @@ class StudentClassManagementController extends Controller
                     ->withInput();
             }
 
-            // Class category fee එක validate කරනවා
             if ($request->class_category_fee_id) {
                 $classCategoryFee = ClassCategoryFee::find($request->class_category_fee_id);
                 if (!$classCategoryFee || $classCategoryFee->student_class_id != $request->student_class_id) {
@@ -298,7 +286,6 @@ class StudentClassManagementController extends Controller
                 }
             }
 
-            // New enrollment එක create කරනවා
             $enrollment = StudentClassEnrollment::create([
                 'student_id' => $request->student_id,
                 'student_class_id' => $request->student_class_id,
@@ -313,10 +300,8 @@ class StudentClassManagementController extends Controller
                 'note' => $request->note,
             ]);
 
-            // ✅ Redirect to show page
             return redirect()->route('admin.student-class-management.show', $request->student_id)
                 ->with('success', 'Class assigned to student successfully');
-
         } catch (\Exception $e) {
             return redirect()->back()
                 ->with('error', 'An error occurred: ' . $e->getMessage())
@@ -331,7 +316,7 @@ class StudentClassManagementController extends Controller
     {
         $student = Student::with([
             'enrollments' => function ($query) {
-                $query->with(['studentClass', 'classCategoryFee.category']);
+                $query->with(['studentClass.grade', 'classCategoryFee.category']);
             }
         ])->find($studentId);
 
@@ -347,6 +332,7 @@ class StudentClassManagementController extends Controller
                 'class_name' => $enrollment->studentClass?->class_name ?? 'N/A',
                 'class_type' => $enrollment->studentClass?->class_type ?? 'N/A',
                 'medium' => $enrollment->studentClass?->medium ?? 'N/A',
+                'grade_name' => $enrollment->studentClass?->grade?->grade_name ?? 'N/A',
                 'category_name' => $enrollment->classCategoryFee?->category?->category_name ?? 'N/A',
                 'fee' => $enrollment->classCategoryFee?->fee ?? 0,
                 'is_active' => $enrollment->is_active,
@@ -363,6 +349,9 @@ class StudentClassManagementController extends Controller
         return view('admin.student-class-management.show', compact('student', 'classes'));
     }
 
+    /**
+     * Get category fees for a class (AJAX)
+     */
     /**
      * Get category fees for a class (AJAX)
      */
@@ -385,7 +374,6 @@ class StudentClassManagementController extends Controller
                 'success' => true,
                 'data' => $fees
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

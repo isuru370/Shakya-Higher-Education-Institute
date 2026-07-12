@@ -125,6 +125,10 @@
                         Categories
                     </a>
 
+                    <a href="{{ route('admin.class-category-fees.index') }}" class="btn btn-outline-primary custom-btn">
+                        Categorie Fees
+                    </a>
+
                     <a href="{{ route('admin.class-halls.index') }}" class="btn btn-outline-warning custom-btn">
                         Halls
                     </a>
