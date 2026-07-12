@@ -29,6 +29,7 @@ use App\Http\Controllers\Admin\InstituteReportController;
 use App\Http\Controllers\Admin\LogController;
 use App\Http\Controllers\Admin\MonthlyReportController;
 use App\Http\Controllers\Admin\StudentAttendanceController;
+use App\Http\Controllers\Admin\StudentClassManagementController;
 use App\Http\Controllers\Admin\StudentIDCardController;
 use App\Http\Controllers\Admin\StudentImageController;
 use App\Http\Controllers\Admin\StudentPaymentController;
@@ -929,4 +930,54 @@ Route::middleware([
             '/payments/import',
             [StudentPaymentController::class, 'importPayments']
         )->name('payments.import');
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | ⭐ Student Class Management (New Feature)
+        |--------------------------------------------------------------------------
+        | This section handles student class management including searching students
+        | by TMP ID, viewing enrolled classes, and managing class status
+        */
+
+        // Student Class Management Routes
+        Route::prefix('student-class-management')
+            ->name('student-class-management.')
+            ->controller(StudentClassManagementController::class)
+            ->group(function () {
+
+                // Main page
+                Route::get('/', 'index')->name('index');
+
+                // ✅ Search - Support both GET and POST
+                Route::match(['GET', 'POST'], '/search-student', 'searchStudentClasses')
+                    ->name('search');
+
+                // OR use ANY (supports all methods)
+                // Route::any('/search-student', 'searchStudentClasses')->name('search');
+
+                // Show student classes
+                Route::get('/student/{studentId}', 'showStudentClasses')->name('show');
+
+                // Toggle status - PUT
+                Route::put('/{enrollmentId}/toggle-status', 'toggleClassStatus')->name('toggle-status');
+
+                // Deactivate - PUT
+                Route::put('/{enrollmentId}/deactivate', 'deactivateClass')->name('deactivate');
+
+                // Activate - PUT
+                Route::put('/{enrollmentId}/activate', 'activateClass')->name('activate');
+
+                // Toggle all - PUT
+                Route::put('/student/{studentId}/toggle-all', 'toggleAllClassesStatus')->name('toggle-all');
+
+                // Assign form - GET
+                Route::get('/assign/{studentId?}', 'showAssignClassForm')->name('assign-form');
+
+                // Assign store - POST
+                Route::post('/assign', 'assignClassToStudent')->name('assign');
+
+                // Get category fees - GET (AJAX)
+                Route::get('/class/{classId}/category-fees', 'getCategoryFees')->name('get-category-fees');
+            });
     });
