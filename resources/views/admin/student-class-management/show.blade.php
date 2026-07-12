@@ -97,6 +97,7 @@
                             <tr>
                                 <th>#</th>
                                 <th>Class Details</th>
+                                <th>Grade</th> <!-- ✅ New Column -->
                                 <th>Category</th>
                                 <th>Fee (LKR)</th>
                                 <th>Payment Status</th>
@@ -120,6 +121,9 @@
                                                 <i class="bi bi-info-circle"></i> {{ $class['note'] }}
                                             </div>
                                         @endif
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ $class['grade_name'] }}</span>
                                     </td>
                                     <td>
                                         <span class="badge bg-info">{{ $class['category_name'] }}</span>
