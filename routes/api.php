@@ -1,15 +1,19 @@
 <?php
 
 use App\Http\Controllers\API\AdmissionPaymentController;
+use App\Http\Controllers\API\AttendanceReportController;
+use App\Http\Controllers\API\AttendanceScheduleController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\Auth\LoginController;
 use App\Http\Controllers\API\ClassScheduleController;
 use App\Http\Controllers\API\GradeController;
-use App\Http\Controllers\Api\InstituteHallController;
+use App\Http\Controllers\API\InstituteHallController;
 use App\Http\Controllers\API\MobileDashboardController;
+use App\Http\Controllers\API\Notification\NotificationController;
 use App\Http\Controllers\API\QuickPhotoController;
 use App\Http\Controllers\API\StudentAttendanceController;
 use App\Http\Controllers\API\StudentAttendanceReadController;
+use App\Http\Controllers\API\StudentAttendanceScanController;
 use App\Http\Controllers\API\StudentClassController;
 use App\Http\Controllers\API\StudentClassEnrollmentController;
 use App\Http\Controllers\API\StudentController;
@@ -209,6 +213,12 @@ Route::middleware([
         [StudentAttendanceReadController::class, 'read']
     )->name('api.attendance.read');
 
+    // new version of attendance scan
+    Route::post(
+        '/attendance/scan',
+        [StudentAttendanceScanController::class, 'scan']
+    )->name('api.attendance.scan');
+
 
 
     Route::post(
@@ -219,6 +229,16 @@ Route::middleware([
     Route::get(
         '/attendance/students/{studentId}/enrollments/{enrolledId}',
         [StudentAttendanceController::class, 'studentAttendanceHistory']
+    );
+
+    Route::post(
+        'attendance/schedules',
+        [AttendanceScheduleController::class, 'index']
+    );
+
+    Route::post(
+        'attendance/report',
+        [AttendanceReportController::class, 'index']
     );
 
 
@@ -327,4 +347,35 @@ Route::middleware([
         '/mobile-dashboard',
         [MobileDashboardController::class, 'mobileDashboardDetails']
     );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Admin Notifications (Send, Manage)
+    |--------------------------------------------------------------------------
+    */
+
+    Route::prefix('/notifications')->group(function () {
+        // Send notifications
+        Route::post('/send', [NotificationController::class, 'send']);
+        Route::post('/send-now', [NotificationController::class, 'sendNow']);
+        Route::post('/bulk', [NotificationController::class, 'sendBulk']);
+        Route::post('/send-to-all', [NotificationController::class, 'sendToAll']);
+        Route::post('/send-to-grade/{grade}', [NotificationController::class, 'sendToGrade']);
+
+        // Get notification status
+        Route::get('/{id}/status', [NotificationController::class, 'status']);
+
+        // Manage notifications
+        Route::post('/{id}/retry', [NotificationController::class, 'retry']);
+        Route::post('/{id}/cancel', [NotificationController::class, 'cancel']);
+        Route::post('/{id}/read', [NotificationController::class, 'markAsRead']);
+
+        // List and filter
+        Route::get('/', [NotificationController::class, 'index']);
+        Route::get('/student/{studentId}/history', [NotificationController::class, 'history']);
+
+        // Stats and maintenance
+        Route::get('/stats', [NotificationController::class, 'stats']);
+        Route::delete('/cleanup', [NotificationController::class, 'deleteOld']);
+    });
 });

@@ -53,24 +53,27 @@
             @endif
         </div>
 
-        {{-- IMPORT --}}
-        @if (auth()->check() && auth()->user()->email === 'admin@nexorait.lk')
-            <div class="sidebar-section">
-                <div class="sidebar-section-title">IMPORT</div>
+        <!-- NOTIFICATION SECTION -->
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">NOTIFICATION</div>
 
-                @if (hasPermission('import.index'))
-                    <div class="nav-item">
-                        <button type="button"
-                            class="nav-link-custom {{ request()->routeIs('admin.import.*') ? 'active' : '' }}"
-                            data-route="admin.import.index" data-href="{{ route('admin.import.index') }}">
-                            <i class="bi bi-people-fill"></i>
-                            <span>Import</span>
-                        </button>
-                    </div>
-                @endif
-
-            </div>
-        @endif
+            @if (hasPermission('notification.view') || hasPermission('notification.create') || hasPermission('notification.delete'))
+                <div class="nav-item">
+                    <button type="button"
+                        class="nav-link-custom {{ request()->routeIs('admin.notifications*') ? 'active' : '' }}"
+                        data-route="admin.notifications" data-href="{{ route('admin.notifications.index') }}">
+                        <i class="bi bi-bell"></i>
+                        <span>Notifications</span>
+                        @php
+                            $unreadCount = App\Models\Notification::unread()->count();
+                        @endphp
+                        @if ($unreadCount > 0)
+                            <span class="badge badge-danger ml-auto">{{ $unreadCount }}</span>
+                        @endif
+                    </button>
+                </div>
+            @endif
+        </div>
 
         <!-- MANAGEMENT -->
         <div class="sidebar-section">
@@ -119,7 +122,6 @@
                     </button>
                 </div>
             @endif
-            <!-- ✅ NEW: Student Class Management -->
             @if (hasPermission('student-class-management.index'))
                 <div class="nav-item">
                     <button type="button"
@@ -228,6 +230,22 @@
 
         </div>
 
+        <!-- EXAM -->
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">EXAM</div>
+
+            @if (hasPermission('exams.index'))
+                <div class="nav-item">
+                    <button type="button"
+                        class="nav-link-custom {{ request()->routeIs('admin.exams.*') ? 'active' : '' }}"
+                        data-route="admin.exams.index" data-href="{{ route('admin.exams.index') }}">
+                        <i class="bi bi-calendar-check"></i>
+                        <span>All Exams</span>
+                    </button>
+                </div>
+            @endif
+        </div>
+
         <!-- STUDENT FINANCE -->
         <div class="sidebar-section">
             <div class="sidebar-section-title">STUDENT FINANCE</div>
@@ -332,6 +350,22 @@
             @endif
 
 
+        </div>
+
+        <!-- RECEIPTS -->
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">RECEIPTS</div>
+
+            @if (hasPermission('receipts.index'))
+                <div class="nav-item">
+                    <button type="button"
+                        class="nav-link-custom {{ request()->routeIs('admin.receipts.*') ? 'active' : '' }}"
+                        data-route="admin.receipts.index" data-href="{{ route('admin.receipts.index') }}">
+                        <i class="bi bi-file-earmark-person"></i>
+                        <span>Receipts</span>
+                    </button>
+                </div>
+            @endif
         </div>
 
         <!-- REPORTS -->

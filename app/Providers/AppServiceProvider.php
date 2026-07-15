@@ -6,10 +6,8 @@ use App\Models\Payment;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Pagination\Paginator;
-use App\Models\Product;
 use App\Models\Student;
 use App\Observers\PaymentObserver;
-use App\Observers\ProductObserver;
 use App\Observers\StudentObserver;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,8 +17,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-            // Register any application services.
-        
+        // Register any application services.
+
     }
 
 
@@ -29,7 +27,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // මෙම line එක add කරන්න
         Schema::defaultStringLength(191);
         Paginator::useBootstrap();
         Student::observe(StudentObserver::class);

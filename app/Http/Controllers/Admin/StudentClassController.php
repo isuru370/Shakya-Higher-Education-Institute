@@ -15,7 +15,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use App\Exports\StudentClassesExport;
-use App\Imports\StudentClassesImport;
 use App\Models\ClassCategoryFee;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -432,22 +431,5 @@ class StudentClassController extends Controller
                         . ' | Teacher: ' . ($class->teacher?->initials ?? '-'),
                 ];
             });
-    }
-
-    public function importClasses(Request $request)
-    {
-        $request->validate([
-            'file' => 'required|mimes:csv,txt'
-        ]);
-
-        Excel::import(
-            new StudentClassesImport(),
-            $request->file('file')
-        );
-
-        return back()->with(
-            'success',
-            'Classes imported successfully.'
-        );
     }
 }

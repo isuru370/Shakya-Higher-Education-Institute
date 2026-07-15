@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\ReceiptNumberService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
@@ -121,78 +122,29 @@ class AdmissionPayment extends Model
     {
         static::creating(function ($payment) {
 
-            /*
-            |--------------------------------------------------------------------------
-            | Receipt Number Generate
-            |--------------------------------------------------------------------------
-            */
-
             if (empty($payment->receipt_number)) {
-
-                $date = now()->format('Ymd');
-
-                $countToday = self::whereDate('created_at', today())->count() + 1;
-
                 $payment->receipt_number =
-                    'REC-NO-' .
-                    $date .
-                    '-' .
-                    str_pad($countToday, 3, '0', STR_PAD_LEFT);
+                    ReceiptNumberService::generate();
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | Default Note
-            |--------------------------------------------------------------------------
-            */
-
             if (empty($payment->note)) {
-
                 $payment->note =
                     'Admission payment collected successfully.';
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | Default User
-            |--------------------------------------------------------------------------
-            */
-
             if (empty($payment->user_id)) {
-
                 $payment->user_id = Auth::id();
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | Default Payment Method
-            |--------------------------------------------------------------------------
-            */
-
             if (empty($payment->payment_method)) {
-
                 $payment->payment_method = 'cash';
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | Default Status
-            |--------------------------------------------------------------------------
-            */
-
             if (empty($payment->status)) {
-
                 $payment->status = self::STATUS_PAID;
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | Default Paid Date
-            |--------------------------------------------------------------------------
-            */
-
             if (empty($payment->paid_at)) {
-
                 $payment->paid_at = now();
             }
         });

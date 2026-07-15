@@ -3,12 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Imports\QuickPhotosImport;
 use App\Models\QuickPhoto;
 use App\Models\Student;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Maatwebsite\Excel\Facades\Excel;
 
 class StudentImageController extends Controller
 {
@@ -114,21 +112,4 @@ class StudentImageController extends Controller
             ->route('admin.student-images.index')
             ->with('success', 'Image assigned successfully.');
     }
-
-    public function importQuickPhotos(Request $request)
-{
-    $request->validate([
-        'file' => 'required|mimes:csv,txt'
-    ]);
-
-    Excel::import(
-        new QuickPhotosImport(),
-        $request->file('file')
-    );
-
-    return back()->with(
-        'success',
-        'Quick photos imported successfully'
-    );
-}
 }

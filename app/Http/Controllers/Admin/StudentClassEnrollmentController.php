@@ -6,7 +6,6 @@ use App\Exports\CategoryStudentsExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StudentClassEnrollment\StoreStudentClassEnrollmentRequest;
 use App\Http\Requests\StudentClassEnrollment\UpdateStudentClassEnrollmentRequest;
-use App\Imports\StudentClassEnrollmentsImport;
 use App\Models\ClassCategory;
 use App\Models\ClassCategoryFee;
 use App\Models\StudentClass;
@@ -426,21 +425,4 @@ class StudentClassEnrollmentController extends Controller
             return back()->with('error', 'Something went wrong while fetching data.');
         }
     }
-
-    public function importEnrollments(Request $request)
-{
-    $request->validate([
-        'file' => 'required|mimes:csv,txt'
-    ]);
-
-    Excel::import(
-        new StudentClassEnrollmentsImport(),
-        $request->file('file')
-    );
-
-    return back()->with(
-        'success',
-        'Student enrollments imported successfully.'
-    );
-}
 }

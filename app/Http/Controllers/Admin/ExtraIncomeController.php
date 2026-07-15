@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ExtraIncome;
+use App\Services\ReceiptNumberService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -150,12 +151,15 @@ class ExtraIncomeController extends Controller
 
             $validated['user_id'] = auth()->id();
 
-            ExtraIncome::create($validated);
+            $validated['receipt_number'] =
+                ReceiptNumberService::generate();
+
+            $extraIncome = ExtraIncome::create($validated);
 
             DB::commit();
 
             return redirect()
-                ->route('admin.extra-incomes.index')
+                ->route('admin.extra-incomes.show', $extraIncome)
                 ->with('success', 'Extra income created successfully.');
         } catch (\Throwable $e) {
 

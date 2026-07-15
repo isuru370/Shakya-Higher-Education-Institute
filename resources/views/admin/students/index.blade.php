@@ -146,7 +146,6 @@
                         PDF
 
                     </a>
-
                     <a href="{{ route('admin.students.allStudentDetailsPdf') }}" class="btn btn-info custom-btn">
 
                         <i class="bi bi-qr-code"></i>

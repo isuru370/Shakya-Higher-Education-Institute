@@ -209,7 +209,7 @@
 
         .brand-title {
 
-            font-size: 25px;
+            font-size: 30px;
 
             font-weight: 800;
 
@@ -230,7 +230,7 @@
         /* BODY */
 
         .login-body {
-            padding: 5px 40px 40px;
+            padding: 20px 40px 40px;
         }
 
         /* LABELS */
@@ -425,7 +425,7 @@
             }
 
             .brand-title {
-                font-size: 20px;
+                font-size: 24px;
             }
         }
     </style>
@@ -457,7 +457,7 @@
                 </div>
 
                 <h1 class="brand-title">
-                    {{ config('app.name', 'EDU NEXORA') }}
+                    NEXORAIT EDU
                 </h1>
 
                 <p class="brand-subtitle">
