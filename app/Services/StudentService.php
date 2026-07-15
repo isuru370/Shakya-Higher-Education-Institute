@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\SendStudentPortalLoginSms;
 use App\Models\Grade;
 use App\Models\Student;
 use App\Models\StudentIdCard;
@@ -14,6 +15,7 @@ use App\Services\ParentHub\ParentHubService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Exception;
 
 class StudentService
@@ -101,26 +103,68 @@ class StudentService
             'is_active' => true,
         ]);
 
-        DB::afterCommit(function () use ($student) {
+        DB::afterCommit(function () use ($student, $plainPassword) {
+
             $this->parentHubService->registerStudent(
                 $student->custom_id,
                 $student->custom_id
             );
+
+            // SendStudentPortalLoginSms::dispatch(
+            //     $student->guardian_mobile,
+            //     $student->custom_id,
+            //     $plainPassword
+            // );
         });
 
         return $plainPassword;
     }
 
+    public function resetPortalPassword(StudentPortalLogin $login)
+    {
+        $plainPassword = $this->generateStudentPassword(
+            $login->student->initial_name,
+            $login->student->guardian_mobile
+        );
+
+        $login->password = $plainPassword;
+        $login->save();
+
+        SendStudentPortalLoginSms::dispatch(
+            $login->student->guardian_mobile,
+            $login->username,
+            $plainPassword
+        );
+    }
+
     /**
      * Generate student password
      */
-    private function generateStudentPassword(string $name, string $mobile): string
-    {
-        $source = strtolower(trim($name)) . preg_replace('/\D/', '', $mobile);
-        $number = abs(crc32($source));
-        return str_pad(substr((string) $number, 0, 8), 8, '0', STR_PAD_LEFT);
-    }
 
+    private function generateStudentPassword(
+        string $initialName,
+        string $guardianMobile
+    ): string {
+
+        // Initials
+        $letters = preg_replace('/[^A-Za-z]/', '', $initialName);
+        $initials = strtoupper(substr($letters, 0, 2));
+
+        if (strlen($initials) < 2) {
+            $initials = str_pad($initials, 2, 'X');
+        }
+
+        // Last 4 digits of mobile
+        $mobileDigits = preg_replace('/\D/', '', $guardianMobile);
+        $lastFour = substr($mobileDigits, -4);
+
+        // Random letters (Eg: Ed)
+        $randomLetters =
+            chr(random_int(65, 90)) .      // A-Z
+            chr(random_int(97, 122));      // a-z
+
+        return $initials . $lastFour . $randomLetters;
+    }
     /**
      * Get default image URL based on gender
      */

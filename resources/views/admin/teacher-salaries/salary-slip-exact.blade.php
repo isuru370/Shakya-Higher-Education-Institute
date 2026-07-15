@@ -313,9 +313,9 @@
 
             {{-- Header --}}
             <div class="slip-header">
-                <h1>{{ config('app.name', 'EDU NEXORA') }}</h1>
-                <div class="institution">Yagoda</div>
-                <div class="address">📞 +94 XX XXX XXXX | ✉ info@XXXXX.edu</div>
+                <h1>MINIPALASA HIGHER EDUCATION</h1>
+                <div class="institution">Mirigama</div>
+                <div class="address">📞 +94 XX XXX XXXX | ✉ info@minipalasa.edu</div>
                 <div class="slip-title">TEACHER SALARY SLIP</div>
             </div>
 

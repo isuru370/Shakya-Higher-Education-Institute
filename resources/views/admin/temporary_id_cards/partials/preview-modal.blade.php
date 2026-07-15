@@ -24,12 +24,9 @@
                                 <img src="{{ asset('storage/logo/black_logo.png') }}" class="logo-img" alt="Logo">
 
                                 <div class="institute-name">
-                                    <div class="title">SHAKYA</div>
+                                    <div class="title">MINIPALASA</div>
 
-                                    <div class="sub">HIGHER EDUCATION</div>
-
-                                    <div class="sub">INSTITUTE</div>
-
+                                    <div class="sub">EDUCATION CENTRE</div>
 
                                     <div class="name-line"></div>
                                 </div>
@@ -124,23 +121,23 @@
             .tmp-card-preview .logo-section {
                 position: absolute;
                 top: 1.06cm;
-                left: .26cm;
+                left: .36cm;
                 z-index: 2;
             }
 
             .tmp-card-preview .logo-img {
                 position: absolute;
-                left: -0.20cm;
-                top: -0.10cm;
-                width: 2.5cm;
-                height: 2.5cm;
+                left: 0.05cm;
+                top: 0.05cm;
+                width: 2cm;
+                height: 2cm;
                 object-fit: contain;
                 display: block;
             }
 
             .tmp-card-preview .institute-name {
                 position: absolute;
-                left: 2.16cm;
+                left: 2.06cm;
                 top: .56cm;
                 line-height: 1.08;
                 width: 4.1cm;

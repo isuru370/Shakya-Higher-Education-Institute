@@ -6,7 +6,6 @@ use App\Exports\TeachersExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Teacher\StoreTeacherRequest;
 use App\Http\Requests\Teacher\UpdateTeacherRequest;
-use App\Imports\TeachersImport;
 use App\Models\BankBranch;
 use App\Models\Teacher;
 use Illuminate\Http\Request;
@@ -212,21 +211,4 @@ class TeacherController extends Controller
 
         return $pdf->download('teachers.pdf');
     }
-
-    public function importTeachers(Request $request)
-{
-    $request->validate([
-        'file' => 'required|mimes:csv,txt'
-    ]);
-
-    Excel::import(
-        new TeachersImport(),
-        $request->file('file')
-    );
-
-    return back()->with(
-        'success',
-        'Teachers imported successfully.'
-    );
-}
 }

@@ -2,10 +2,16 @@
 
 namespace App\Http\Controllers\API;
 
+use App\Enums\NotificationStatus;
+use App\Enums\NotificationType;
 use App\Http\Controllers\Controller;
+use App\Jobs\SendNotificationJob;
 use App\Jobs\SendPaymentSms;
+use App\Models\Notification;
 use App\Models\Payment;
 use App\Models\StudentClassEnrollment;
+use App\Services\Notification\PaymentNotificationService;
+use App\Services\ReceiptNumberService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,6 +21,12 @@ use Throwable;
 
 class StudentPaymentController extends Controller
 {
+     protected PaymentNotificationService $paymentNotification;
+
+     public function __construct(PaymentNotificationService $paymentNotification)
+    {
+        $this->paymentNotification = $paymentNotification;
+    }
     public function todayReceipt(Request $request)
     {
         $validated = $request->validate([
@@ -135,7 +147,7 @@ class StudentPaymentController extends Controller
             ],
         ]);
     }
-    public function store(Request $request): JsonResponse
+     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'payments' => ['required', 'array', 'min:1'],
@@ -160,13 +172,7 @@ class StudentPaymentController extends Controller
                         ->where('is_active', true)
                         ->firstOrFail();
 
-                    $paymentMonth = Carbon::createFromFormat(
-                        'Y-m-d',
-                        $item['payment_month'] . '-01'
-                    );
-
-                    $receiptNumber = $this->generateReceiptNumber();
-                    $referenceNumber = $this->generateReferenceNumber();
+                    $paymentMonth = Carbon::createFromFormat('Y-m-d', $item['payment_month'] . '-01');
 
                     $payment = Payment::create([
                         'student_id' => $item['student_id'],
@@ -179,8 +185,8 @@ class StudentPaymentController extends Controller
                         'payment_month' => $paymentMonth->toDateString(),
                         'payment_method' => 'cash',
                         'status' => 'completed',
-                        'receipt_number' => $receiptNumber,
-                        'reference_number' => $referenceNumber,
+                        'receipt_number' => ReceiptNumberService::generate(),
+                        'reference_number' => $this->generateReferenceNumber(),
                         'is_synced' => true,
                         'note' => $item['note'] ?? $paymentMonth->format('F Y') . ' month paid',
                     ]);
@@ -197,43 +203,45 @@ class StudentPaymentController extends Controller
                 return $results;
             });
 
+            // ============================================
+            // 🚀 SEND NOTIFICATION FOR EACH PAYMENT
+            // ============================================
             foreach ($createdPayments as $payment) {
-                $guardianMobile = $payment->student?->guardian_mobile;
-
-                if ($guardianMobile) {
-                    $smsMessage = sprintf(
-                        'Paid: %s, %s/%s, Rs.%s, %s.',
-                        $payment->student?->initial_name ?? 'Student',
-                        $payment->enrollment?->studentClass?->class_name ?? 'N/A',
-                        $payment->enrollment?->classCategoryFee?->category?->category_name ?? 'N/A',
-                        number_format((float) $payment->amount, 0),
-                        Carbon::parse($payment->payment_month)->format('M Y')
-                    );
-
-                    SendPaymentSms::dispatch($guardianMobile, $smsMessage);
-                }
+                $this->paymentNotification->sendSuccess($payment);
             }
 
             return response()->json([
                 'status' => 'success',
                 'message' => 'Payments saved successfully',
                 'data' => [
-                    'payments' => collect($createdPayments)->map(function ($payment) {
-                        return [
-                            'payment_id' => $payment->id,
-                            'receipt_number' => $payment->receipt_number,
-                            'reference_number' => $payment->reference_number,
-                            'payment_method' => $payment->payment_method,
-                            'payment_month' => Carbon::parse($payment->payment_month)->format('Y-m'),
-                            'paid_at' => $payment->paid_at?->format('Y-m-d H:i:s'),
-                            'note' => $payment->note,
-                            'guardian_mobile' => $payment->student?->guardian_mobile,
-                            'sms_queued' => (bool) $payment->student?->guardian_mobile,
-                        ];
-                    })->values(),
+                    'student' => [
+                        'id' => $createdPayments[0]->student?->id,
+                        'name' => $createdPayments[0]->student?->initial_name,
+                        'guardian_mobile' => $createdPayments[0]->student?->guardian_mobile,
+                    ],
+                    'receipt' => [
+                        'payment_month' => Carbon::parse($createdPayments[0]->payment_month)->format('Y-m'),
+                        'total_fee' => (float) collect($createdPayments)->sum('amount'),
+                        'discount_amount' => (float) collect($createdPayments)->sum('discount_amount'),
+                        'payable_total' => (float) collect($createdPayments)->sum('amount'),
+                        'items' => collect($createdPayments)->map(function ($payment) {
+                            return [
+                                'payment_id' => $payment->id,
+                                'receipt_number' => $payment->receipt_number,
+                                'reference_number' => $payment->reference_number,
+                                'class_name' => $payment->enrollment?->studentClass?->class_name,
+                                'grade' => $payment->enrollment?->studentClass?->grade?->grade_name,
+                                'category_name' => $payment->enrollment?->classCategoryFee?->category?->category_name,
+                                'amount' => (float) $payment->amount,
+                                'discount_amount' => (float) $payment->discount_amount,
+                                'paid_at' => $payment->paid_at?->format('Y-m-d H:i:s'),
+                            ];
+                        })->values(),
+                    ],
                     'count' => count($createdPayments),
                 ],
             ], 201);
+
         } catch (Throwable $e) {
             Log::error('Bulk payment store failed', [
                 'message' => $e->getMessage(),
@@ -439,38 +447,6 @@ class StudentPaymentController extends Controller
 
     /*
     |--------------------------------------------------------------------------
-    | Generate Receipt Number
-    |--------------------------------------------------------------------------
-    */
-    private function generateReceiptNumber(): string
-    {
-        $date = now()->format('Ymd');
-
-        $lastReceipt = Payment::withTrashed()
-            ->whereDate('created_at', today())
-            ->where('receipt_number', 'like', 'REC-' . $date . '-%')
-            ->latest('id')
-            ->value('receipt_number');
-
-        $nextNumber = 1;
-
-        if ($lastReceipt) {
-
-            $parts = explode('-', $lastReceipt);
-
-            $lastSequence = (int) end($parts);
-
-            $nextNumber = $lastSequence + 1;
-        }
-
-        return 'REC-' .
-            $date .
-            '-' .
-            str_pad((string) $nextNumber, 4, '0', STR_PAD_LEFT);
-    }
-
-    /*
-    |--------------------------------------------------------------------------
     | Generate Reference Number
     |--------------------------------------------------------------------------
     */
@@ -511,18 +487,23 @@ class StudentPaymentController extends Controller
                     'receipt_number',
                 ])
                 ->with([
-                    'student:id,custom_id,temporary_qr_code,initial_name,guardian_mobile,img_url',
-                    'enrollment:id,student_class_id',
+                    'student:id,custom_id,temporary_qr_code,initial_name,guardian_mobile,img_url,permanent_qr_active',
+                    'enrollment:id,student_class_id,class_category_fee_id', // Add class_category_fee_id
                     'enrollment.studentClass:id,class_name,grade_id,subject_id,teacher_id',
                     'enrollment.studentClass.grade:id,grade_name',
                     'enrollment.studentClass.subject:id,subject_name',
                     'enrollment.studentClass.teacher:id,initials',
+                    'enrollment.classCategoryFee:id,class_category_id,fee', // Load through enrollment
+                    'enrollment.classCategoryFee.category:id,category_name,code', // Load category
                 ])
                 ->where('status', 'completed')
                 ->whereDate('paid_at', $date->toDateString())
                 ->orderByDesc('paid_at')
                 ->get()
                 ->map(function ($payment) {
+                    // Get category from enrollment's classCategoryFee
+                    $category = $payment->enrollment?->classCategoryFee?->category;
+
                     return [
                         'payment' => [
                             'id' => $payment->id,
@@ -535,7 +516,9 @@ class StudentPaymentController extends Controller
                         ],
                         'student' => [
                             'id' => $payment->student?->id,
-                            'custom_id' => $payment->student?->permanent_qr_active == 1 ? $payment->student?->custom_id : $payment->student?->temporary_qr_code,
+                            'custom_id' => $payment->student?->permanent_qr_active == 1
+                                ? $payment->student?->custom_id
+                                : $payment->student?->temporary_qr_code,
                             'initial_name' => $payment->student?->initial_name,
                             'guardian_mobile' => $payment->student?->guardian_mobile,
                             'img_url' => $payment->student?->img_url,
@@ -556,6 +539,11 @@ class StudentPaymentController extends Controller
                                 'id' => $payment->enrollment?->studentClass?->teacher?->id,
                                 'initials' => $payment->enrollment?->studentClass?->teacher?->initials,
                             ],
+                            'category' => [
+                                'id' => $category?->id,
+                                'category_name' => $category?->category_name,
+                                'code' => $category?->code,
+                            ],
                         ],
                     ];
                 });
@@ -567,7 +555,6 @@ class StudentPaymentController extends Controller
                 'data' => $payments,
             ]);
         } catch (Throwable $e) {
-
             Log::error('Today Payments Fetch Error', [
                 'message' => $e->getMessage(),
                 'line' => $e->getLine(),

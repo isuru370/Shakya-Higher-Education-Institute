@@ -50,17 +50,17 @@
 
         .logo-section {
             position: absolute;
-            top: 1.06cm;
-            left: .26cm;
+            top: 1.08cm;
+            left: .38cm;
             z-index: 2;
         }
 
         .logo-img {
             position: absolute;
-            left: -0.20cm;
-            top: -0.10cm;
-            width: 2.5cm;
-            height: 2.5cm;
+            left: 0.05cm;
+            top: 0.05cm;
+            width: 2cm;
+            height: 2cm;
             object-fit: contain;
             display: block;
         }
@@ -68,7 +68,7 @@
         .institute-name {
             position: absolute;
             left: 2.00cm;
-            top: .56cm;
+            top: .55cm;
             line-height: 1.2;
             width: 3.8cm;
         }
@@ -281,11 +281,11 @@
                         @foreach($pageCodes as $item)
                             <div class="id-card">
                                 <div class="logo-section">
-                                    <img src="{{ asset('storage/logo/logo.png') }}" class="logo-img" alt="Logo">
+                                    <img src="{{ asset('storage/logo/black_logo.png') }}" class="logo-img" alt="Logo">
 
                                     <div class="institute-name">
-                                        <div class="title">SHAKYA</div>
-                                        <div class="sub">HIGHER EDUCATION INSTITUTE</div>
+                                        <div class="title">MINIPAHANA</div>
+                                        <div class="sub">EDUCATION CENTRE</div>
                                         <div class="name-line"></div>
                                     </div>
                                 </div>

@@ -438,15 +438,15 @@
         </div>
 
         {{-- ========================================= --}}
-        {{-- TEACHER WITH STUDENT PAYMENT REPORT SECTION --}}
+        {{-- TEACHER WITH STUDENT PAYMENT MONTH REPORT SECTION --}}
         {{-- ========================================= --}}
         <div class="report-card">
             <div class="report-header">
                 <div class="report-title">
                     <i class="bi bi-people-fill"></i>
-                    Teacher With Student Payment Report
+                    Teacher Student Payment Month Report
                 </div>
-                <div class="report-subtitle">Filter teacher, year and month to download payment reports</div>
+                <div class="report-subtitle">Shows students who paid for the selected fee month.</div>
             </div>
             <div class="report-body">
                 <form method="GET" action="{{ route('admin.monthly-report.index') }}">
@@ -521,8 +521,102 @@
                 <div class="info-box mt-3">
                     <i class="bi bi-info-circle-fill"></i>
                     <div class="info-box-text">
-                        This report shows all student payments collected by the selected teacher for the chosen month and
-                        year.
+                        <strong>Payment Month Report:</strong>
+                        This report shows students who have paid for the selected payment month.
+                        The payment can be made on any date, but students will be included if their
+                        payment month matches the selected year and month.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- ========================================= --}}
+        {{-- TEACHER WITH STUDENT PAYMENT DATE REPORT SECTION --}}
+        {{-- ========================================= --}}
+        <div class="report-card">
+            <div class="report-header">
+                <div class="report-title">
+                    <i class="bi bi-people-fill"></i>
+                    Teacher Student Collection Report
+                </div>
+                <div class="report-subtitle">Shows students who made payments during the selected month.</div>
+            </div>
+            <div class="report-body">
+                <form method="GET" action="{{ route('admin.monthly-report.index') }}">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label-custom">Year</label>
+                            <select name="year" class="form-select-custom">
+                                @for ($y = now()->year; $y >= 2020; $y--)
+                                    <option value="{{ $y }}" {{ request('year', now()->year) == $y ? 'selected' : '' }}>
+                                        {{ $y }}
+                                    </option>
+                                @endfor
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label-custom">Month</label>
+                            <select name="month" class="form-select-custom">
+                                @for ($m = 1; $m <= 12; $m++)
+                                    <option value="{{ $m }}" {{ request('month', now()->month) == $m ? 'selected' : '' }}>
+                                        {{ \Carbon\Carbon::create()->month($m)->format('F') }}
+                                    </option>
+                                @endfor
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label-custom">Select Teacher</label>
+                            <select name="teacher_id" class="form-select-custom">
+                                <option value="">-- Select Teacher --</option>
+                                @foreach ($teachers as $teacherItem)
+                                    <option value="{{ $teacherItem->id }}" {{ request('teacher_id') == $teacherItem->id ? 'selected' : '' }}>
+                                        {{ $teacherItem->custom_id }} - {{ $teacherItem->initials }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn-primary-custom w-100">
+                                <i class="bi bi-search me-1"></i> Filter
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <div class="divider"></div>
+
+                <div class="d-flex gap-2 flex-wrap">
+                    @php
+                        $teacherId = request('teacher_id');
+                        $year = request('year', now()->year);
+                        $month = request('month', now()->month);
+                    @endphp
+
+                    @if($teacherId)
+                        <a href="{{ url('/admin/reports/teacher-student-payment-date-excel?teacher_id=' . $teacherId . '&year=' . $year . '&month=' . $month) }}"
+                            class="btn-excel">
+                            <i class="bi bi-file-earmark-spreadsheet"></i> Download Excel
+                        </a>
+                        <a href="{{ url('/admin/reports/teacher-student-payment-date-pdf?teacher_id=' . $teacherId . '&year=' . $year . '&month=' . $month) }}"
+                            target="_blank" class="btn-pdf">
+                            <i class="bi bi-filetype-pdf"></i> Download PDF
+                        </a>
+                    @else
+                        <div class="info-box" style="background: #fef3c7;">
+                            <i class="bi bi-exclamation-triangle-fill" style="color: #f59e0b;"></i>
+                            <div class="info-box-text">
+                                Please select a teacher to generate the student payment report.
+                            </div>
+                        </div>
+                    @endif
+                </div>
+
+                <div class="info-box mt-3">
+                    <i class="bi bi-info-circle-fill"></i>
+                    <div class="info-box-text">
+                        <strong>Payment Date Report:</strong>
+                        This report shows students who made payments during the selected year and month,
+                        regardless of which payment month the payment was assigned to.
                     </div>
                 </div>
             </div>

@@ -3,14 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Imports\ClassCategoryFeesImport;
 use App\Models\ClassCategory;
 use App\Models\ClassCategoryFee;
 use App\Models\StudentClass;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Validation\Rule;
 use Exception;
 
@@ -335,22 +333,5 @@ class ClassCategoryFeeController extends Controller
                 'category_name' => $fee->category?->category_name ?? '-',
                 'fee' => number_format($fee->fee, 2, '.', ''),
             ]);
-    }
-
-    public function importClassCategoryFees(Request $request)
-    {
-        $request->validate([
-            'file' => 'required|mimes:csv,txt'
-        ]);
-
-        Excel::import(
-            new ClassCategoryFeesImport(),
-            $request->file('file')
-        );
-
-        return back()->with(
-            'success',
-            'Class category fees imported successfully.'
-        );
     }
 }

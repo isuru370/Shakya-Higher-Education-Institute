@@ -113,17 +113,17 @@
         /* LOGO SECTION */
         .logo-section {
             position: absolute;
-            top: 1.06cm;
-            left: .26cm;
-            z-index: 2;
+            top: 1.00cm;
+            left: 0.38cm;
+            z-index: 5;
         }
 
         .logo-img {
             position: absolute;
-            left: -0.20cm;
-            top: -0.10cm;
-            width: 2.5cm;
-            height: 2.5cm;
+            left: 0.05cm;
+            top: 0.05cm;
+            width: 2cm;
+            height: 2cm;
             object-fit: contain;
             display: block;
         }
@@ -132,7 +132,7 @@
         .institute-name {
             position: absolute;
             left: 2.00cm;
-            top: 0.56cm;
+            top: 0.55cm;
             width: 3.8cm;
             line-height: 1.2;
             z-index: 10;
@@ -237,7 +237,7 @@
         }
 
         $logoSrc = '';
-        $logoPath = public_path('storage/logo/logo.png');
+        $logoPath = public_path('storage/logo/black_logo.png');
 
         if (file_exists($logoPath)) {
             $logoSrc = 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath));
@@ -272,8 +272,8 @@
                                             @endif
 
                                             <div class="institute-name">
-                                                <div class="title">SHAKYA</div>
-                                                <div class="sub">HIGHER EDUCATION INSTITUTE</div>
+                                                <div class="title">MINIPALASA</div>
+                                                <div class="sub">EDUCATION CENTRE</div>
                                                 <div class="name-line"></div>
                                             </div>
                                         </div>

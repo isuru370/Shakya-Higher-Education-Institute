@@ -71,6 +71,7 @@ class AdmissionPaymentController extends Controller
         $validated['status'] = $request->input('status', 'paid');
         $validated['note'] = $request->filled('note') ? $request->note : null;
 
+
         $payment = AdmissionPayment::create($validated);
 
         return redirect()

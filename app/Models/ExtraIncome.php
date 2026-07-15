@@ -15,6 +15,7 @@ class ExtraIncome extends Model
         'reason',
         'income_type',
         'status',
+        'receipt_number', // add this
         'user_id',
         'note',
     ];
@@ -28,7 +29,6 @@ class ExtraIncome extends Model
     {
         return $this->belongsTo(User::class, 'user_id');
     }
-    // 🔥 helpers
 
     public function isReceived()
     {

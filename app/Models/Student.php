@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Student extends Model
@@ -82,6 +83,40 @@ class Student extends Model
     public function portalLogin()
     {
         return $this->hasOne(StudentPortalLogin::class);
+    }
+
+    public function results()
+    {
+        return $this->hasMany(StudentResult::class);
+    }
+
+    public function fcmTokens(): HasMany
+    {
+        return $this->hasMany(FcmToken::class);
+    }
+
+    /**
+     * Get active FCM tokens for the student.
+     */
+    public function activeFcmTokens(): HasMany
+    {
+        return $this->fcmTokens()->where('is_active', true);
+    }
+
+    /**
+     * Get the notifications for the student.
+     */
+    public function notifications(): HasMany
+    {
+        return $this->hasMany(Notification::class);
+    }
+
+    /**
+     * Get unread notifications for the student.
+     */
+    public function unreadNotifications(): HasMany
+    {
+        return $this->notifications()->whereNull('read_at');
     }
 
     public function mobileDevices()

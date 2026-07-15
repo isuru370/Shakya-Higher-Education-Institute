@@ -549,6 +549,9 @@
                         <button type="button" class="quick-action-btn btn-warning-custom" data-href="{{ route('admin.student-classes.create') }}">
                             <i class="bi bi-calendar-plus-fill"></i> Create Class
                         </button>
+                        <button type="button" class="quick-action-btn btn-info-custom" data-href="{{ route('admin.monthly-report.index') }}">
+                            <i class="bi bi-file-earmark-bar-graph"></i> Report
+                        </button>
                     </div>
                 </div>
             </div>

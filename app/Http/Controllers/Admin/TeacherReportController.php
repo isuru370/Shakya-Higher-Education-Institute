@@ -24,7 +24,7 @@ class TeacherReportController extends Controller
         $date = $this->normalizeDate($request->query('date'));
         $teacherId = $request->query('teacher_id');
 
-        $teachers = \App\Models\Teacher::query()
+        $teachers = Teacher::query()
             ->select(['id', 'custom_id', 'initials'])
             ->orderBy('initials')
             ->get();
