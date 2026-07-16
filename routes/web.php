@@ -182,21 +182,6 @@ Route::middleware([
         [LogController::class, 'stats']
     )
         ->name('logs.laravel.stats');
-
-    Route::get(
-        '/receipts',
-        [ReceiptController::class, 'index']
-    )->name('receipts.index');
-
-    Route::get(
-        '/receipts/export/excel',
-        [ReceiptController::class, 'exportExcel']
-    )->name('receipts.export.excel');
-
-    Route::get(
-        '/receipts/export/pdf',
-        [ReceiptController::class, 'exportPdf']
-    )->name('receipts.export.pdf');
 });
 
 Route::middleware([
@@ -207,9 +192,20 @@ Route::middleware([
     ->name('admin.')
     ->group(function () {
 
-        Route::get('/test-role', function () {
-            return 'Admin Only';
-        });
+        Route::get(
+            '/receipts',
+            [ReceiptController::class, 'index']
+        )->name('receipts.index');
+
+        Route::get(
+            '/receipts/export/excel',
+            [ReceiptController::class, 'exportExcel']
+        )->name('receipts.export.excel');
+
+        Route::get(
+            '/receipts/export/pdf',
+            [ReceiptController::class, 'exportPdf']
+        )->name('receipts.export.pdf');
 
 
         Route::get('/profile', [UserProfileController::class, 'index'])
@@ -1136,6 +1132,8 @@ Route::middleware([
                 Route::get('/export', [NotificationController::class, 'export'])
                     ->name('export');
             });
+
+
 
         // ============================================
         // FCM TOKEN ROUTES
