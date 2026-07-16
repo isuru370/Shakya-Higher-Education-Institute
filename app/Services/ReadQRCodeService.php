@@ -26,7 +26,7 @@ class ReadQRCodeService
             ->first();
 
         if (!$student) {
-            throw new \Exception('QR code invalid');
+            throw new Exception('QR code invalid');
         }
 
         // TMP QR code
@@ -36,7 +36,7 @@ class ReadQRCodeService
                 $student->temporary_qr_code_expire_date &&
                 $now->gt($student->temporary_qr_code_expire_date)
             ) {
-                throw new \Exception('Temporary QR code has expired');
+                throw new Exception('Temporary QR code has expired');
             }
 
             return $student->id;
