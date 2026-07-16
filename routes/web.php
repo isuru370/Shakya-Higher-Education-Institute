@@ -154,14 +154,62 @@ Route::post(
 Route::middleware([
     'auth',
     'user.active',
-    'permission'
-])
+    'role:SUPER_ADMIN'
+])->group(function () {
+    /*
+|--------------------------------------------------------------------------
+|  Laravel Logs
+|--------------------------------------------------------------------------
+*/
 
-    ->prefix('admin')
+    Route::get(
+        '/logs/laravel',
+        [LogController::class, 'index']
+    )->name('logs.laravel.index');
 
+    Route::post(
+        '/logs/laravel/clear',
+        [LogController::class, 'clear']
+    )->name('logs.laravel.clear');
+
+    Route::get(
+        '/logs/laravel/download',
+        [LogController::class, 'download']
+    )->name('logs.laravel.download');
+
+    Route::get(
+        '/logs/laravel/stats',
+        [LogController::class, 'stats']
+    )
+        ->name('logs.laravel.stats');
+
+    Route::get(
+        '/receipts',
+        [ReceiptController::class, 'index']
+    )->name('receipts.index');
+
+    Route::get(
+        '/receipts/export/excel',
+        [ReceiptController::class, 'exportExcel']
+    )->name('receipts.export.excel');
+
+    Route::get(
+        '/receipts/export/pdf',
+        [ReceiptController::class, 'exportPdf']
+    )->name('receipts.export.pdf');
+});
+
+Route::middleware([
+    'auth',
+    'user.active',
+    'role:ADMIN'
+])->prefix('admin')
     ->name('admin.')
-
     ->group(function () {
+
+        Route::get('/test-role', function () {
+            return 'Admin Only';
+        });
 
 
         Route::get('/profile', [UserProfileController::class, 'index'])
@@ -1035,48 +1083,6 @@ Route::middleware([
         Route::post('/activity-logs/clear', [ActivityLogController::class, 'clearOld'])->name('activity-logs.clear');
 
 
-        /*
-|--------------------------------------------------------------------------
-|  Laravel Logs
-|--------------------------------------------------------------------------
-*/
-
-        Route::get(
-            '/logs/laravel',
-            [LogController::class, 'index']
-        )->name('logs.laravel.index');
-
-        Route::post(
-            '/logs/laravel/clear',
-            [LogController::class, 'clear']
-        )->name('logs.laravel.clear');
-
-        Route::get(
-            '/logs/laravel/download',
-            [LogController::class, 'download']
-        )->name('logs.laravel.download');
-
-        Route::get(
-            '/logs/laravel/stats',
-            [LogController::class, 'stats']
-        )
-            ->name('logs.laravel.stats');
-
-        Route::get(
-            '/receipts',
-            [ReceiptController::class, 'index']
-        )->name('receipts.index');
-
-        Route::get(
-            '/receipts/export/excel',
-            [ReceiptController::class, 'exportExcel']
-        )->name('receipts.export.excel');
-
-        Route::get(
-            '/receipts/export/pdf',
-            [ReceiptController::class, 'exportPdf']
-        )->name('receipts.export.pdf');
-
         // Notification Routes
         Route::prefix('notifications')
             ->name('notifications.')
@@ -1183,7 +1189,7 @@ Route::middleware([
                     ->name('stats');
             });
 
-            Route::prefix('student-class-management')
+        Route::prefix('student-class-management')
             ->name('student-class-management.')
             ->controller(StudentClassManagementController::class)
             ->group(function () {
