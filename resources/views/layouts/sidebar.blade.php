@@ -360,7 +360,7 @@
                 <div class="nav-item">
                     <button type="button"
                         class="nav-link-custom {{ request()->routeIs('admin.receipts.*') ? 'active' : '' }}"
-                        data-route="admin.receipts.index" data-href="{{ route('receipts.index') }}">
+                        data-route="admin.receipts.index" data-href="{{ route('admin.receipts.index') }}">
                         <i class="bi bi-file-earmark-person"></i>
                         <span>Receipts</span>
                     </button>
