@@ -32,12 +32,12 @@ class ReadQRCodeService
         // TMP QR code
         if ($student->temporary_qr_code === $qrCode) {
 
-            if (
-                $student->temporary_qr_code_expire_date &&
-                $now->gt($student->temporary_qr_code_expire_date)
-            ) {
-                throw new Exception('Temporary QR code has expired');
-            }
+            // if (
+            //     $student->temporary_qr_code_expire_date &&
+            //     $now->gt($student->temporary_qr_code_expire_date)
+            // ) {
+            //     throw new Exception('Temporary QR code has expired');
+            // }
 
             return $student->id;
         }

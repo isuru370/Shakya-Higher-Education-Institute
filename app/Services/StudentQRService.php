@@ -39,12 +39,12 @@ class StudentQRService
 
                 $qrType = self::getQrType($student, $qrCode);
 
-                if (
-                    $qrType === self::QR_TYPE_TEMPORARY &&
-                    self::isTemporaryQrExpired($student)
-                ) {
-                    return self::error('QR code expired', 403);
-                }
+                // if (
+                //     $qrType === self::QR_TYPE_TEMPORARY &&
+                //     self::isTemporaryQrExpired($student)
+                // ) {
+                //     return self::error('QR code expired', 403);
+                // }
 
                 if (
                     $qrType === self::QR_TYPE_PERMANENT &&
