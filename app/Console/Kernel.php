@@ -22,7 +22,12 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         $schedule->command('disable:expired-students')->dailyAt('00:00');
+
+        $schedule->command('backup:database')
+        ->dailyAt('02:00')
+        ->timezone('Asia/Colombo');
     }
+
 
     /**
      * Register the commands for the application.
