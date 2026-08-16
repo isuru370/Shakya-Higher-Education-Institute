@@ -387,4 +387,53 @@ class StudentController extends Controller
                 'text' => "{$student->custom_id} - {$student->full_name}",
             ]);
     }
+
+    public function gradeWiseStudentDetailsPdf()
+    {
+        try {
+
+            $students = Student::select(
+                'id',
+                'custom_id',
+                'temporary_qr_code',
+                'full_name',
+                'initial_name',
+                'grade_id',
+                'is_active'
+            )
+                ->with([
+                    'grade:id,grade_name'
+                ])
+                ->orderBy('grade_id')
+                ->orderBy('id')
+                ->get();
+
+            $grades = $students->groupBy('grade_id');
+
+            $pdf = Pdf::loadView(
+                'admin.pdf.student.grade_wise_students',
+                [
+                    'grades' => $grades,
+                ]
+            );
+
+            $pdf->setPaper('a4', 'landscape');
+
+            return $pdf->download(
+                'grade-wise-student-report.pdf'
+            );
+        } catch (Throwable $e) {
+
+            Log::error('Grade Wise Student PDF Error', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+
+            return back()->with(
+                'error',
+                'Failed to generate grade wise student report.'
+            );
+        }
+    }
 }

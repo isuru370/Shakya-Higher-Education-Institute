@@ -267,6 +267,11 @@ Route::middleware([
             [StudentController::class, 'search']
         )->name('students.search');
 
+        Route::get(
+            '/students/grade-wise-pdf',
+            [StudentController::class, 'gradeWiseStudentDetailsPdf']
+        )->name('students.grade-wise-pdf');
+
         // Resource
         Route::resource(
             'students',
@@ -290,6 +295,8 @@ Route::middleware([
             [StudentController::class, 'exportPdf']
         )->name('students.exportPdf');
 
+
+
         /*
         |--------------------------------------------------------------------------
         | Student QR Reports
@@ -300,6 +307,8 @@ Route::middleware([
             'students-export/all-students-pdf',
             [StudentController::class, 'allStudentDetailsPdf']
         )->name('students.allStudentDetailsPdf');
+
+
 
         Route::get(
             'students-export/temporary-card-expired-soon-pdf',
